@@ -76,7 +76,7 @@ const plannedDropoffIcon = new Icon({
 
 // Location selection component that captures map clicks
 function LocationSelector({ onLocationSelected }: { onLocationSelected: (lat: number, lng: number) => void }) {
-  const map = useMapEvents({
+  useMapEvents({
     click: (e) => {
       onLocationSelected(e.latlng.lat, e.latlng.lng);
     }
@@ -105,7 +105,6 @@ export function Map({
   const [activeTrip, setActiveTrip] = useState<number | null>(null);
   const [tempMarker, setTempMarker] = useState<{lat: number, lng: number} | null>(null);
   const mapRef = useRef<any>(null);
-  const tempMarkerRef = useRef<any>(null);
   const colors = themeColors || {
     bg: darkMode ? 'bg-gray-900' : 'bg-purple-50',
     card: darkMode ? 'bg-gray-800' : 'bg-white',
@@ -211,19 +210,6 @@ export function Map({
     }
   }, [locations]);
 
-  // Effect to open popup when tempMarker is set
-  useEffect(() => {
-    if (tempMarker && tempMarkerRef.current) {
-      // Access the underlying Leaflet marker and open its popup
-      const leafletElement = tempMarkerRef.current;
-      if (leafletElement.leafletElement) {
-        setTimeout(() => {
-          leafletElement.leafletElement.openPopup();
-        }, 100);
-      }
-    }
-  }, [tempMarker]);
-
   const handleTripClick = (tripId: number) => {
     setActiveTrip(prevId => prevId === tripId ? null : tripId);
     
@@ -269,7 +255,6 @@ export function Map({
 
   // Handle map clicks for location selection
   const handleLocationSelected = (lat: number, lng: number) => {
-    // Set temporary marker
     setTempMarker({ lat, lng });
     
     // Call the callback with the selected location
@@ -390,7 +375,6 @@ export function Map({
           <Marker
             position={[tempMarker.lat, tempMarker.lng]}
             icon={plannedDropoffIcon}
-            ref={tempMarkerRef}
           >
             <Popup className={darkMode ? 'dark-popup' : ''}>
               <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>

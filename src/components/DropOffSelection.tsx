@@ -48,6 +48,7 @@ export function DropOffSelection(props: DropOffSelectionProps) {
   };
 
   const handleLocationSelected = (lat: number, lng: number) => {
+    console.log("Location selected:", lat, lng);
     const label = inputLabel || `Location ${dropOffLocations.length + 1}`;
     const newLocation: DropOffLocation = {
       id: Date.now(),

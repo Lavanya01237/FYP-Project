@@ -221,6 +221,16 @@ function App() {
     setNextTripId(1);
     setAppMode('form');
     setCanContinuePlanning(false);
+    
+    // Clear previous routes - this is the key addition
+    setPreviousRoutes([]);
+    
+    // Also reset to default location if needed
+    setCurrentLocation({ lat: 1.3521, lng: 103.8198 });
+    
+    // Reset time settings to defaults
+    setInitialStartTime(6); // Default start time (6 AM)
+    setEndTime(25); // Default end time (1 AM next day)
   };
 
   const toggleDarkMode = () => {
@@ -238,6 +248,16 @@ function App() {
     setNextTripId(1);
     setAppMode('form');
     setCanContinuePlanning(false);
+    
+    // Clear previous routes
+    setPreviousRoutes([]);
+    
+    // Reset to default location
+    setCurrentLocation({ lat: 1.3521, lng: 103.8198 });
+    
+    // Reset time settings to defaults
+    setInitialStartTime(6);
+    setEndTime(25);
   };
 
   // Helper function to format time
