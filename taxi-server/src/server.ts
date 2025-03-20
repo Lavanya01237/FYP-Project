@@ -21,6 +21,37 @@ interface OptimizeRouteRequest {
   algorithm: 'reinforcement' | 'greedy';
 }
 
+// NEW INTERFACES - ADD THESE HERE
+// -----------------------------------
+interface DropOffLocation {
+  id: number;
+  lat: number;
+  lng: number;
+  label: string;
+  score?: number;
+  revenue?: number;
+  distance?: number;
+  duration?: number;
+  prediction?: number;
+}
+
+interface EvaluateDropOffsRequest {
+  startLocation: {
+    lat: number;
+    lng: number;
+  };
+  dropOffLocations: DropOffLocation[];
+  currentTime: number; // Hour (0-23)
+}
+
+interface RecommendPickupsRequest {
+  dropOffLocation: {
+    lat: number;
+    lng: number;
+  };
+  currentTime: number; // Hour (0-23)
+}
+// -----------------------------------
 
 // Add your DataRow interface here
 interface DataRow {
@@ -704,6 +735,7 @@ class GreedyAlgorithm {
         
         if (closestDropOffs.length > 0) {
           // Randomly select one drop-off
+          // Randomly select one drop-off
           const selectedDropOff = closestDropOffs[Math.floor(Math.random() * closestDropOffs.length)];
           const dropOffLocation = [selectedDropOff.LATITUDE, selectedDropOff.LONGITUDE];
           const bestRevenue = calculateRevenue(selectedDropOff.distance);
@@ -1007,6 +1039,249 @@ app.post('/api/optimize-route', async (req: express.Request, res: express.Respon
     res.status(500).json({ error: 'Failed to generate route' });
   }
 });
+
+// NEW API ENDPOINTS - ADD THESE HERE
+// -----------------------------------
+/**
+ * Endpoint to evaluate potential drop-off locations
+ * Takes driver-inputted drop-off locations and evaluates them using the RL algorithm
+ */
+app.post('/api/evaluate-drop-offs', async (req: express.Request, res: express.Response) => {
+  const { startLocation, dropOffLocations, currentTime }: EvaluateDropOffsRequest = req.body;
+  
+  try {
+    // Initialize RL algorithm if not already done
+    if (!reinforcementAlgorithm) {
+      reinforcementAlgorithm = new ReinforcementLearningAlgorithm(processedData, osrm);
+    }
+    
+    const hour = currentTime;
+    const startLat = startLocation.lat;
+    const startLng = startLocation.lng;
+    
+    console.log(`Evaluating ${dropOffLocations.length} drop-off locations from (${startLat}, ${startLng}) at hour ${hour}`);
+    
+    // Evaluate each drop-off location
+    const evaluatedLocations = await Promise.all(dropOffLocations.map(async (location) => {
+      const dropLat = location.lat;
+      const dropLng = location.lng;
+      const locationId = location.id;
+      
+      try {
+        // Get route information using OSRM
+        const route = await osrm.routeDistTime(startLng, startLat, dropLng, dropLat);
+        
+        if (!route || route.distance === Infinity) {
+          throw new Error('Unable to route to this location');
+        }
+        
+        // Calculate revenue based on distance
+        const revenue = calculateRevenue(route.distance);
+        
+        // Find location-specific data from our dataset
+        const locationData = processedData.filter((row:any) => 
+          row.hour === hour &&
+          Math.round(row.LATITUDE * 100) === Math.round(dropLat * 100) && 
+          Math.round(row.LONGITUDE * 100) === Math.round(dropLng * 100)
+        );
+        
+        // Get prediction value and calculate demand-supply factor
+        let prediction = 0;
+        let demandSupplyFactor = 1.0;
+        
+        if (locationData.length > 0) {
+          prediction = locationData[0].predictions;
+          
+          // Use the same demand-supply calculation from your RL algorithm
+          if (prediction > 0) {
+            demandSupplyFactor = 2.0 + Math.min(Math.abs(prediction), 3.0);
+          } else {
+            demandSupplyFactor = Math.max(0.5, 1.0 - Math.min(prediction, 0.5));
+          }
+        }
+        
+        // Calculate moving cost (same as in calculateReward)
+        const movingCost = route.distance / 1000 * 0.3;
+        
+        // Calculate score using the same logic as in calculateReward
+        const score = demandSupplyFactor - movingCost;
+        
+        console.log(`Evaluated location (${dropLat}, ${dropLng}): score=${score.toFixed(2)}, revenue=$${revenue.toFixed(2)}`);
+        
+        return {
+          id: locationId,
+          lat: dropLat,
+          lng: dropLng,
+          label: location.label || 'Drop-off',
+          distance: route.distance / 1000, // Convert to km for display
+          duration: route.duration,
+          revenue,
+          prediction,
+          score
+        };
+      } catch (error) {
+        console.error(`Error evaluating drop-off location: ${error}`);
+        // Return the location with minimal data if we can't route to it
+        return {
+          id: locationId,
+          lat: dropLat,
+          lng: dropLng,
+          label: location.label || 'Drop-off',
+          distance: 0,
+          duration: 0,
+          revenue: 0,
+          prediction: 0,
+          score: -1 // Negative score for unreachable locations
+        };
+      }
+    }));
+    
+    // Sort by score (highest first)
+    const sortedLocations = evaluatedLocations.sort((a, b) => b.score - a.score);
+    
+    // Get the recommended location (highest score)
+    let recommendedId = null;
+    if (sortedLocations.length > 0 && sortedLocations[0].score > 0) {
+      recommendedId = sortedLocations[0].id;
+    }
+    
+    res.json({
+      evaluatedLocations: sortedLocations,
+      recommendedLocationId: recommendedId
+    });
+  } catch (error) {
+    console.error('Error evaluating drop-off locations:', error);
+    res.status(500).json({ error: 'Failed to evaluate drop-off locations' });
+  }
+});
+
+/**
+ * Endpoint to get recommended pickup locations
+ * After a drop-off is selected, this endpoint recommends the next pickup locations
+ */
+app.post('/api/recommend-pickups', async (req: express.Request, res: express.Response) => {
+  const { dropOffLocation, currentTime }: RecommendPickupsRequest = req.body;
+  
+  try {
+    // Initialize RL algorithm if not already done
+    if (!reinforcementAlgorithm) {
+      reinforcementAlgorithm = new ReinforcementLearningAlgorithm(processedData, osrm);
+    }
+    
+    const hour = currentTime;
+    const dropLat = dropOffLocation.lat;
+    const dropLng = dropOffLocation.lng;
+    
+    console.log(`Finding pickup recommendations from drop-off at (${dropLat}, ${dropLng}) at hour ${hour}`);
+    
+    // Use the RL algorithm to get the best pickup recommendation
+    const [nextLat, nextLon] = reinforcementAlgorithm.getRecommendation(dropLat, dropLng, hour);
+    
+    // Get route information for the primary recommendation
+    const pickupRoute = await osrm.routeDistTime(dropLng, dropLat, nextLon, nextLat);
+    
+    if (!pickupRoute || pickupRoute.distance === Infinity) {
+      throw new Error('Unable to route to recommended pickup location');
+    }
+    
+    // Get prediction data for the recommended location
+    const locationData = processedData.filter((row:any) => 
+      row.hour === hour &&
+      Math.round(row.LATITUDE * 100) === Math.round(nextLat * 100) && 
+      Math.round(row.LONGITUDE * 100) === Math.round(nextLon * 100)
+    );
+    
+    let prediction = 0;
+    if (locationData.length > 0) {
+      prediction = locationData[0].predictions;
+    }
+    
+    // Create the primary recommendation
+    const recommendedPickups = [{
+      id: 1, // Use ID 1 for the primary recommendation
+      lat: nextLat,
+      lng: nextLon,
+      label: 'Primary Pickup',
+      distance: pickupRoute.distance / 1000, // Convert to km for display
+      duration: pickupRoute.duration,
+      prediction,
+      score: 1.0 // Highest score for primary recommendation
+    }];
+    
+    console.log(`Primary recommendation: (${nextLat}, ${nextLon}), prediction=${prediction}`);
+    
+    // Find alternative pickup locations with high demand
+    const demandLocations = processedData.filter((row: any) => 
+      row.hour === hour && 
+      row.predictions > 0 &&
+      // Skip if too close to primary recommendation
+      (Math.sqrt((row.LATITUDE - nextLat)**2 + (row.LONGITUDE - nextLon)**2) > 0.005)
+    );
+    
+    // Sort by prediction value (highest demand first)
+    demandLocations.sort((a:any, b:any) => b.predictions - a.predictions);
+    
+    // Find top alternative pickup locations
+    const alternativePickups = await Promise.all(
+      demandLocations.slice(0, 10).map(async (row: any) => {
+        const altLat = row.LATITUDE;
+        const altLng = row.LONGITUDE;
+        
+        try {
+          // Calculate route to this location
+          const route = await osrm.routeDistTime(dropLng, dropLat, altLng, altLat);
+          
+          if (!route || route.distance === Infinity || route.duration > 900) {
+            // Skip if too far (more than 15 minutes drive)
+            return null;
+          }
+          
+          return {
+            lat: altLat,
+            lng: altLng,
+            distance: route.distance,
+            duration: route.duration,
+            prediction: row.predictions,
+            score: row.predictions - (route.distance / 10000) // Balance demand with distance
+          };
+        } catch (error) {
+          console.error('Error calculating route to alternative pickup:', error);
+          return null;
+        }
+      })
+    );
+    
+    // Filter out null values and sort by score
+    const validAlternatives = alternativePickups
+      .filter(pickup => pickup !== null)
+      .sort((a, b) => b.score - a.score);
+    
+    // Add top alternatives to recommendations (max 3)
+    validAlternatives.slice(0, 3).forEach((pickup, i) => {
+      recommendedPickups.push({
+        id: i + 2, // IDs 2, 3, 4
+        lat: pickup.lat,
+        lng: pickup.lng,
+        label: `Alternative ${i+1}`,
+        distance: pickup.distance / 1000, // Convert to km for display
+        duration: pickup.duration,
+        prediction: pickup.prediction,
+        score: pickup.score
+      });
+      
+      console.log(`Alternative ${i+1}: (${pickup.lat}, ${pickup.lng}), prediction=${pickup.prediction}`);
+    });
+    
+    res.json({
+      recommendedPickups,
+      primaryRecommendationId: 1
+    });
+  } catch (error) {
+    console.error('Error generating pickup recommendations:', error);
+    res.status(500).json({ error: 'Failed to generate pickup recommendations' });
+  }
+});
+// -----------------------------------
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
