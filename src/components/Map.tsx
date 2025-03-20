@@ -4,6 +4,25 @@ import 'leaflet/dist/leaflet.css';
 import { Location } from '../types';
 import { useEffect, useState, useRef } from 'react';
 
+// Fix Leaflet icon issue by importing marker icon images and setting them globally
+import L from 'leaflet';
+
+// Define icon URLs explicitly
+const ICON_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png';
+const ICON_RETINA_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png';
+const SHADOW_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png';
+
+// Set default icon globally
+L.Icon.Default.mergeOptions({
+  iconUrl: ICON_URL,
+  iconRetinaUrl: ICON_RETINA_URL,
+  shadowUrl: SHADOW_URL,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 interface MapProps {
   locations: Location[];
   darkMode?: boolean;
@@ -31,6 +50,7 @@ const pickupIcon = new Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
   shadowSize: [41, 41]
 });
 
@@ -40,6 +60,7 @@ const dropoffIcon = new Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
   shadowSize: [41, 41]
 });
 
@@ -49,6 +70,7 @@ const plannedDropoffIcon = new Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
   shadowSize: [41, 41]
 });
 
@@ -194,7 +216,7 @@ export function Map({
     if (tempMarker && tempMarkerRef.current) {
       // Access the underlying Leaflet marker and open its popup
       const leafletElement = tempMarkerRef.current;
-      if (leafletElement && leafletElement.leafletElement) {
+      if (leafletElement.leafletElement) {
         setTimeout(() => {
           leafletElement.leafletElement.openPopup();
         }, 100);
@@ -327,7 +349,7 @@ export function Map({
                     {location.type === 'pickup' ? 'Pick-up' : 'Drop-off'}
                   </span>
                 </div>
-                <p className="text-sm mb-2">Time: {location.time}</p>
+                {location.time && <p className="text-sm mb-2">Time: {location.time}</p>}
                 {location.type === 'dropoff' && (
                   <p className="text-green-600 font-medium text-sm mb-2">Revenue: ${location.revenue.toFixed(2)}</p>
                 )}
@@ -340,7 +362,7 @@ export function Map({
         ))}
 
         {/* Render custom dropoff locations */}
-        {customDropoffs.map((dropoff) => (
+        {customDropoffs && customDropoffs.map((dropoff) => (
           <Marker
             key={`custom-dropoff-${dropoff.id}`}
             position={[dropoff.lat, dropoff.lng]}

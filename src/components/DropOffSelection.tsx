@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Map } from './Map';
-import { MapPin, ThumbsUp, X, AlertTriangle } from 'lucide-react';
+import { MapPin, ThumbsUp, X } from 'lucide-react';
 
 interface DropOffLocation {
   id: number;
@@ -28,13 +28,9 @@ interface DropOffSelectionProps {
   };
 }
 
-export function DropOffSelection({ 
-  darkMode = false, 
-  currentLocation, 
-  onDropOffSelected, 
-  onCancel,
-  themeColors 
-}: DropOffSelectionProps) {
+export function DropOffSelection(props: DropOffSelectionProps) {
+  const { darkMode = false, currentLocation, onDropOffSelected, onCancel, themeColors } = props;
+  
   const [dropOffLocations, setDropOffLocations] = useState<DropOffLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -63,17 +59,27 @@ export function DropOffSelection({
     setInputLabel('');
   };
 
+  // Helper function to calculate distance between two points (in km)
+  const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   const handleAnalyzeLocations = async () => {
     if (dropOffLocations.length === 0) return;
     
     setIsAnalyzing(true);
     
     try {
-      // In a real implementation, this would call your backend API with the RL algorithm
-      // For now, we'll simulate the analysis with a timeout and random scores
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Simulate AI analysis results
       const updatedLocations = dropOffLocations.map(location => {
         const distance = haversineDistance(
           currentLocation.lat, 
@@ -82,15 +88,9 @@ export function DropOffSelection({
           location.lng
         );
         
-        // Calculate mock duration (60 km/h average speed)
         const duration = (distance / 60) * 60 * 60; // seconds
-        
-        // Basic revenue calculation based on your formula
         const revenue = 4.5 + (distance * 0.70);
-        
-        // Generate a score based on the algorithm logic
-        // Higher score = better option
-        const prediction = Math.random() * 2 - 1; // Random value between -1 and 1
+        const prediction = Math.random() * 2 - 1;
         const demandScore = prediction < 0 ? -prediction : 0;
         const score = revenue * (1 + Math.max(0, demandScore));
         
@@ -103,7 +103,6 @@ export function DropOffSelection({
         };
       });
       
-      // Find the location with the highest score
       const bestLocation = updatedLocations.reduce(
         (best, current) => (current.score! > best.score! ? current : best),
         updatedLocations[0]
@@ -117,19 +116,6 @@ export function DropOffSelection({
     } finally {
       setIsAnalyzing(false);
     }
-  };
-
-  // Helper function to calculate distance between two points (in km)
-  const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
   };
 
   const handleLocationSelect = (id: number) => {
@@ -160,6 +146,7 @@ export function DropOffSelection({
     return `${minutes} min`;
   };
 
+  // JSX rendering
   return (
     <div className="flex flex-col h-full">
       <div className={`p-4 ${colors.card} border-b ${colors.border}`}>
@@ -167,7 +154,7 @@ export function DropOffSelection({
           <h2 className={`text-lg font-semibold ${colors.text}`}>Select Drop-off Location</h2>
           <button
             onClick={onCancel}
-            className={`p-2 rounded-full hover:${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+            className={`p-2 rounded-full ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
           >
             <X size={20} className={colors.text} />
           </button>
@@ -295,12 +282,19 @@ export function DropOffSelection({
 
       <div className="flex-1 relative">
         <Map 
-          locations={[]}  // No existing route locations
+          locations={[{
+            lat: currentLocation.lat,
+            lng: currentLocation.lng,
+            type: 'pickup',
+            time: 'Current Location',
+            revenue: 0,
+            tripId: 0
+          }]}
           darkMode={darkMode}
           isSelectionMode={true}
           onLocationSelected={handleLocationSelected}
           customDropoffs={dropOffLocations}
-          themeColors={themeColors}
+          themeColors={colors}
         />
       </div>
     </div>

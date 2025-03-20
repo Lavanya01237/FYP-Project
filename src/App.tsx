@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Map } from './components/Map';
 import { RouteForm } from './components/RouteForm';
 import { RouteSummary } from './components/RouteSummary';
 import { DropOffSelection } from './components/DropOffSelection';
 import { PickupRecommendation } from './components/PickupRecommendation';
 import { Route, Location } from './types';
-import { Navigation, MoonIcon, SunIcon, MenuIcon, HistoryIcon, UserIcon, BellIcon, MapPin } from 'lucide-react';
+import { Navigation, MoonIcon, SunIcon, MenuIcon, HistoryIcon, UserIcon, BellIcon, MapPin, ArrowLeftCircle, PlusCircle } from 'lucide-react';
 
 // Add these new types to handle the AI flow
 interface DropOffLocation {
@@ -44,6 +44,19 @@ function App() {
   const [customRouteLocations, setCustomRouteLocations] = useState<Location[]>([]);
   const [selectedDropOff, setSelectedDropOff] = useState<DropOffLocation | null>(null);
   const [nextTripId, setNextTripId] = useState(1);
+  const [initialStartTime, setInitialStartTime] = useState<number>(6); // Default start time (6 AM)
+  const [endTime, setEndTime] = useState<number>(25); // Default end time (1 AM next day)
+  const [previousRoutes, setPreviousRoutes] = useState<Route[]>([]);
+  const [canContinuePlanning, setCanContinuePlanning] = useState(false);
+
+  // Function to get current hour for time calculations
+  const getCurrentHour = (timeStr: string): number => {
+    const [time, period] = timeStr.split(' ');
+    let [hour, minute] = time.split(':').map(Number);
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    return hour;
+  };
 
   const handleRouteSubmit = async (data: { lat: number; lng: number; startTime: number; endTime: number; algorithm: 'reinforcement' | 'greedy' }) => {
     try {
@@ -51,6 +64,8 @@ function App() {
       setError(null);
       setSelectedAlgorithm(data.algorithm);
       setCurrentLocation({ lat: data.lat, lng: data.lng });
+      setInitialStartTime(data.startTime);
+      setEndTime(data.endTime);
       
       // If user chooses AI optimization (reinforcement learning)
       if (data.algorithm === 'reinforcement') {
@@ -66,6 +81,7 @@ function App() {
         
         setLoading(false);
         setAppMode('drop-off-selection');
+        setCanContinuePlanning(true);
       } else {
         // Traditional approach - fetch full route from backend
         const response = await fetch('http://localhost:3001/api/optimize-route', {
@@ -92,6 +108,7 @@ function App() {
         setRoute(optimizedRoute);
         setAppMode('route');
         setLoading(false);
+        setCanContinuePlanning(false);
       }
     } catch (err) {
       setError('Failed to generate route. Please try again.');
@@ -140,8 +157,14 @@ function App() {
     setCustomRouteLocations([...customRouteLocations, newPickup]);
     setCurrentLocation({ lat: location.lat, lng: location.lng });
     
-    // Go back to drop-off selection for the next leg
-    setAppMode('drop-off-selection');
+    // Check if we've reached the end time
+    const currentHour = getCurrentHour(newPickup.time);
+    if (currentHour >= endTime) {
+      handleFinishRoute();
+    } else {
+      // Go back to drop-off selection for the next leg
+      setAppMode('drop-off-selection');
+    }
   };
 
   const handleFinishRoute = () => {
@@ -157,14 +180,47 @@ function App() {
     
     // Create a complete route object
     const completeRoute: Route = {
-      locations: customRouteLocations,
+      locations: [...customRouteLocations],
       totalRevenue,
       totalDrivingTime,
       breakTime: '12:00 PM - 1:00 PM'
     };
     
+    // Save the current route to previous routes
+    setPreviousRoutes(prev => [...prev, completeRoute]);
+    
     setRoute(completeRoute);
     setAppMode('route');
+  };
+
+  const handleContinuePlanning = () => {
+    // Resume planning from the last location
+    if (route && route.locations.length > 0) {
+      const lastLocation = route.locations[route.locations.length - 1];
+      setCurrentLocation({ lat: lastLocation.lat, lng: lastLocation.lng });
+      
+      // Check if we need to reset the custom route locations
+      if (customRouteLocations.length === 0) {
+        setCustomRouteLocations(route.locations);
+      }
+      
+      // Determine next mode based on the last location type
+      if (lastLocation.type === 'pickup') {
+        setAppMode('drop-off-selection');
+      } else {
+        setAppMode('pickup-recommendation');
+      }
+    }
+  };
+
+  const handleNewRoute = () => {
+    // Start a completely new route
+    setRoute(null);
+    setCustomRouteLocations([]);
+    setSelectedDropOff(null);
+    setNextTripId(1);
+    setAppMode('form');
+    setCanContinuePlanning(false);
   };
 
   const toggleDarkMode = () => {
@@ -181,6 +237,7 @@ function App() {
     setSelectedDropOff(null);
     setNextTripId(1);
     setAppMode('form');
+    setCanContinuePlanning(false);
   };
 
   // Helper function to format time
@@ -196,7 +253,7 @@ function App() {
     const [hour, minute] = time.split(':').map(Number);
     
     let totalMinutes = (hour % 12) * 60 + minute;
-    if (period === 'PM') totalMinutes += 12 * 60;
+    if (period === 'PM' && hour !== 12) totalMinutes += 12 * 60;
     
     totalMinutes += minutesToAdd;
     
@@ -214,7 +271,7 @@ function App() {
     const [hour, minute] = time.split(':').map(Number);
     
     let totalMinutes = (hour % 12) * 60 + minute;
-    if (period === 'PM') totalMinutes += 12 * 60;
+    if (period === 'PM' && hour !== 12) totalMinutes += 12 * 60;
     
     return totalMinutes;
   };
@@ -237,6 +294,15 @@ function App() {
         secondaryBg: 'bg-purple-50',
         border: 'border-purple-100'
       };
+
+  // Check if user can continue route planning based on time
+  useEffect(() => {
+    if (route && route.locations.length > 0) {
+      const lastLocation = route.locations[route.locations.length - 1];
+      const currentHour = getCurrentHour(lastLocation.time);
+      setCanContinuePlanning(currentHour < endTime);
+    }
+  }, [route, endTime]);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${themeColors.bg}`}>
@@ -378,6 +444,63 @@ function App() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
               <RouteSummary route={route} darkMode={darkMode} algorithm={selectedAlgorithm} themeColors={themeColors} />
+              
+              {/* Route Management Controls */}
+              <div className={`${themeColors.card} p-4 rounded-xl shadow-lg transition-colors duration-300`}>
+                <h3 className={`font-medium mb-4 ${themeColors.text}`}>Route Management</h3>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleNewRoute}
+                    className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center ${
+                      darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    } transition-colors duration-200`}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    New Route
+                  </button>
+                  
+                  {getCurrentHour(route.locations[route.locations.length - 1].time) < endTime && (
+                    <button
+                      onClick={handleContinuePlanning}
+                      className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center ${
+                        darkMode 
+                          ? 'bg-purple-600 text-white hover:bg-purple-500' 
+                          : 'bg-purple-500 text-white hover:bg-purple-400'
+                      } transition-colors duration-200`}
+                    >
+                      <ArrowLeftCircle className="h-4 w-4 mr-2" />
+                      Continue Planning
+                    </button>
+                  )}
+                </div>
+                
+                {previousRoutes.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className={`text-sm font-medium mb-2 ${themeColors.text}`}>Previous Routes</h4>
+                    <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
+                      {previousRoutes.map((prevRoute, index) => (
+                        <div 
+                          key={index}
+                          className={`p-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                            darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-purple-50 hover:bg-purple-100'
+                          }`}
+                          onClick={() => setRoute(prevRoute)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className={`text-sm ${themeColors.text}`}>Route {index + 1}</span>
+                            <span className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                              ${prevRoute.totalRevenue.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {prevRoute.locations.length} locations • {prevRoute.totalDrivingTime}h
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="lg:col-span-2">
