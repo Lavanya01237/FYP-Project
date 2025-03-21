@@ -5,7 +5,25 @@ import { RouteSummary } from './components/RouteSummary';
 import { DropOffSelection } from './components/DropOffSelection';
 import { PickupRecommendation } from './components/PickupRecommendation';
 import { Route, Location } from './types';
-import { Navigation, MoonIcon, SunIcon, MenuIcon, HistoryIcon, UserIcon, BellIcon, MapPin, ArrowLeftCircle, PlusCircle, Coffee } from 'lucide-react';
+import { motion } from "framer-motion";
+//import { Navigation, MenuIcon } from "lucide-react"; // Ensure correct imports
+import { 
+  Navigation, 
+  MoonIcon, 
+  SunIcon, 
+  MenuIcon, 
+  HistoryIcon, 
+  UserIcon, 
+  BellIcon, 
+  MapPin, 
+  ArrowLeftCircle, 
+  PlusCircle, 
+  Coffee, 
+  Send, 
+  Clock, 
+  DollarSign,
+  Car
+} from 'lucide-react';
 
 // Add these new types to handle the AI flow
 interface DropOffLocation {
@@ -399,24 +417,19 @@ function App() {
     }
   }, [customRouteLocations, breakStartTime, breakEndTime]);
 
-  // Define theme colors based on mode
-  const themeColors = darkMode 
-    ? { 
-        bg: 'bg-gray-900',
-        card: 'bg-gray-800',
-        text: 'text-gray-100',
-        highlight: 'text-purple-400',
-        secondaryBg: 'bg-gray-800',
-        border: 'border-gray-700'
-      }
-    : { 
-        bg: 'bg-gradient-to-br from-purple-50 to-pink-100',
-        card: 'bg-white',
-        text: 'text-gray-800',
-        highlight: 'text-purple-600',
-        secondaryBg: 'bg-purple-50',
-        border: 'border-purple-100'
-      };
+  // Define theme colors based on mode - Updated to exactly match screenshots
+  const themeColors = { 
+    bg: 'bg-[#f9f0ff]', // Light purple background
+    card: 'bg-white',
+    text: 'text-gray-800',
+    highlight: 'text-purple-600',
+    secondaryBg: 'bg-[#f5f0ff]', // Lighter purple for secondary elements
+    border: 'border-gray-200',
+    purpleLight: 'bg-[#f5f0ff]', // Very light purple for cards
+    purpleMedium: 'bg-[#9747ff]', // Medium purple for buttons
+    purpleText: 'text-[#9747ff]', // Purple text color
+    greenText: 'text-[#4caf50]' // Green text for revenue
+  };
 
   // Check if user can continue route planning based on time
   useEffect(() => {
@@ -436,49 +449,40 @@ function App() {
             className="absolute inset-0 bg-black bg-opacity-50"
             onClick={toggleMenu}
           ></div>
-          <div className={`absolute left-0 top-0 h-full w-64 ${darkMode ? 'bg-gray-900' : 'bg-white'} shadow-xl transition-transform duration-300 transform`}>
+          <div className="absolute left-0 top-0 h-full w-64 bg-white border-r border-gray-200 transition-transform duration-300 transform">
             <div className="p-5">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-full ${darkMode ? 'bg-purple-900' : 'bg-purple-200'}`}>
-                    <Navigation className={`h-6 w-6 ${darkMode ? 'text-purple-200' : 'text-purple-600'}`} />
+                  <div className="p-2 rounded-full bg-[#f5f0ff]">
+                    <Navigation className="h-6 w-6 text-[#9747ff]" />
                   </div>
-                  <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <h1 className="text-xl font-medium text-gray-900">
                     RideOptimizer
                   </h1>
                 </div>
               </div>
               
-              <nav className="space-y-4">
-                <a href="#" className={`flex items-center space-x-3 p-3 rounded-lg ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-purple-100'}`}>
-                  <UserIcon className={`h-5 w-5 ${themeColors.highlight}`} />
-                  <span className={`${themeColors.text}`}>Profile</span>
+              <nav className="space-y-2">
+                <a href="#" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-[#f5f0ff]">
+                  <UserIcon className="h-5 w-5 text-gray-600" />
+                  <span className="text-gray-800">Profile</span>
                 </a>
-                <a href="#" className={`flex items-center space-x-3 p-3 rounded-lg ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-purple-100'}`}>
-                  <HistoryIcon className={`h-5 w-5 ${themeColors.highlight}`} />
-                  <span className={`${themeColors.text}`}>History</span>
+                <a href="#" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-[#f5f0ff]">
+                  <HistoryIcon className="h-5 w-5 text-gray-600" />
+                  <span className="text-gray-800">History</span>
                 </a>
-                <a href="#" className={`flex items-center space-x-3 p-3 rounded-lg ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-purple-100'}`}>
-                  <BellIcon className={`h-5 w-5 ${themeColors.highlight}`} />
-                  <span className={`${themeColors.text}`}>Notifications</span>
+                <a href="#" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-[#f5f0ff]">
+                  <BellIcon className="h-5 w-5 text-gray-600" />
+                  <span className="text-gray-800">Notifications</span>
                 </a>
                 
                 <div className="pt-4 mt-4 border-t border-gray-200">
                   <button 
                     onClick={toggleDarkMode}
-                    className={`flex items-center space-x-3 p-3 rounded-lg w-full text-left ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-purple-100'}`}
+                    className="flex items-center space-x-3 p-3 rounded-lg w-full text-left hover:bg-[#f5f0ff]"
                   >
-                    {darkMode ? (
-                      <>
-                        <SunIcon className="h-5 w-5 text-yellow-300" />
-                        <span className={`${themeColors.text}`}>Light Mode</span>
-                      </>
-                    ) : (
-                      <>
-                        <MoonIcon className="h-5 w-5 text-purple-600" />
-                        <span className={`${themeColors.text}`}>Dark Mode</span>
-                      </>
-                    )}
+                    <MoonIcon className="h-5 w-5 text-gray-600" />
+                    <span className="text-gray-800">Dark Mode</span>
                   </button>
                 </div>
               </nav>
@@ -487,47 +491,54 @@ function App() {
         </div>
       )}
 
-      <header className={`${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg transition-colors duration-300`}>
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-full ${darkMode ? 'bg-purple-900' : 'bg-purple-200'}`}>
-                <Navigation className={`h-6 w-6 ${darkMode ? 'text-purple-200' : 'text-purple-600'}`} />
-              </div>
-              <h1 className={`text-2xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                RideOptimizer
-              </h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              {appMode !== 'form' && (
-                <button 
-                  onClick={resetApp}
-                  className={`text-sm px-3 py-1.5 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
-                >
-                  New Route
-                </button>
-              )}
-              <button 
-                onClick={toggleDarkMode}
-                className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-300' : 'bg-purple-100 text-purple-600'}`}
-              >
-                {darkMode ? <SunIcon size={20} /> : <MoonIcon size={20} />}
-              </button>
-              <button 
-                onClick={toggleMenu}
-                className="p-2 rounded-full lg:hidden"
-              >
-                <MenuIcon size={20} className={darkMode ? 'text-white' : 'text-gray-800'} />
-              </button>
-            </div>
-          </div>
+<header className="bg-white border-b border-gray-200 transition-colors duration-300">
+  <div className="max-w-7xl mx-auto px-7 py-5 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-between">
+      
+      {/* Left Section */}
+      <div className="flex items-center space-x-3">
+        
+        {/* Navigation Icon with Background */}
+        <div className="p-2 rounded-full bg-[#F5EFFF]">
+          <Navigation className="h-6 w-6 text-[#9747FF]" />
         </div>
-      </header>
+
+        {/* Text */}
+        <h1 className="text-4xl font-bold text-[#29044D]">
+          RideOptimizer
+        </h1>
+
+      </div>
+
+      {/* Right Section */}
+      <div className="flex items-center space-x-2">
+        {appMode !== "form" && (
+          <button 
+            onClick={resetApp}
+            className="text-sm px-4 py-1.5 rounded-full border bg-purple-100 text-purple-800 hover:bg-purple-200"
+          >
+            New Route
+          </button>
+        )}
+        
+        {/* Menu Button */}
+        <button 
+          onClick={toggleMenu}
+          className="p-2 rounded-full border border-purple-100 lg:hidden"
+        >
+          <Navigation size={18} className="text-gray-800" />
+        </button>
+      </div>
+
+    </div>
+  </div>
+</header>
+
 
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {appMode === 'form' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-6">
+          <div className="flex flex-col items-center justify-center">
+            <div className="w-full max-w-2xl">
               <RouteForm 
                 onSubmit={handleRouteSubmit} 
                 isLoading={loading} 
@@ -536,29 +547,10 @@ function App() {
               />
               
               {error && (
-                <div className={`${darkMode ? 'bg-red-900 border-red-700' : 'bg-red-50 border-red-200'} border text-red-600 px-4 py-3 rounded-lg transition-all duration-300 animate-fadeIn`}>
+                <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg transition-all duration-300 animate-fadeIn">
                   {error}
                 </div>
               )}
-            </div>
-            
-            <div className="lg:col-span-2">
-              <div className={`${themeColors.card} p-4 rounded-xl shadow-lg transition-colors duration-300 h-[700px]`}>
-                <div className="h-full flex flex-col items-center justify-center">
-                  <div className={`p-4 rounded-full ${darkMode ? 'bg-gray-700' : 'bg-purple-200'} mb-4 animate-float`}>
-                    <Navigation className={`h-12 w-12 ${darkMode ? 'text-purple-300' : 'text-purple-500'}`} />
-                  </div>
-                  <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} max-w-sm`}>
-                    Enter your starting location and time<br />to generate an optimized taxi route
-                  </p>
-                  <div className={`mt-8 px-6 py-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-purple-50'} max-w-md`}>
-                    <h3 className={`font-medium mb-2 ${themeColors.text}`}>Try our AI-powered optimization</h3>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Select "AI Optimized" algorithm to use our reinforcement learning model for dynamic route planning.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -574,14 +566,12 @@ function App() {
               />
               
               {/* Route Management Controls */}
-              <div className={`${themeColors.card} p-4 rounded-xl shadow-lg transition-colors duration-300`}>
-                <h3 className={`font-medium mb-4 ${themeColors.text}`}>Route Management</h3>
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <h3 className="font-medium mb-4 text-gray-800">Route Management</h3>
                 <div className="flex gap-3">
                   <button
                     onClick={handleNewRoute}
-                    className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center ${
-                      darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                    } transition-colors duration-200`}
+                    className="flex-1 py-2 px-3 rounded-lg flex items-center justify-center bg-[#f5f0ff] text-[#9747ff] transition-colors duration-200"
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
                     New Route
@@ -590,11 +580,7 @@ function App() {
                   {getCurrentHour(route.locations[route.locations.length - 1].time) < endTime && (
                     <button
                       onClick={handleContinuePlanning}
-                      className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center ${
-                        darkMode 
-                          ? 'bg-purple-600 text-white hover:bg-purple-500' 
-                          : 'bg-purple-500 text-white hover:bg-purple-400'
-                      } transition-colors duration-200`}
+                      className="flex-1 py-2 px-3 rounded-lg flex items-center justify-center bg-[#9747ff] text-white transition-colors duration-200"
                     >
                       <ArrowLeftCircle className="h-4 w-4 mr-2" />
                       Continue Planning
@@ -604,23 +590,21 @@ function App() {
                 
                 {previousRoutes.length > 0 && (
                   <div className="mt-4">
-                    <h4 className={`text-sm font-medium mb-2 ${themeColors.text}`}>Previous Routes</h4>
+                    <h4 className="text-sm font-medium mb-2 text-gray-800">Previous Routes</h4>
                     <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
                       {previousRoutes.map((prevRoute, index) => (
                         <div 
                           key={index}
-                          className={`p-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                            darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-purple-50 hover:bg-purple-100'
-                          }`}
+                          className="p-2 rounded-lg cursor-pointer transition-all duration-200 bg-[#f5f0ff] hover:bg-[#ebe5f9]"
                           onClick={() => setRoute(prevRoute)}
                         >
                           <div className="flex justify-between items-center">
-                            <span className={`text-sm ${themeColors.text}`}>Route {index + 1}</span>
-                            <span className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                            <span className="text-sm text-gray-800">Route {index + 1}</span>
+                            <span className="text-sm text-[#4caf50]">
                               ${prevRoute.totalRevenue.toFixed(2)}
                             </span>
                           </div>
-                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <div className="text-xs text-gray-500">
                             {prevRoute.locations.length} locations • {prevRoute.totalDrivingTime}h
                           </div>
                         </div>
@@ -632,7 +616,7 @@ function App() {
             </div>
             
             <div className="lg:col-span-2">
-              <div className={`${themeColors.card} p-4 rounded-xl shadow-lg transition-colors duration-300 h-[700px]`}>
+              <div className="bg-white p-4 rounded-lg shadow-sm h-[700px]">
                 <Map locations={route.locations} darkMode={darkMode} themeColors={themeColors} />
               </div>
             </div>
@@ -642,27 +626,27 @@ function App() {
         {appMode === 'drop-off-selection' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
-              <div className={`${themeColors.card} p-6 rounded-lg shadow-md transition-colors duration-300 space-y-4`}>
-                <h2 className={`text-lg font-semibold ${themeColors.text} flex items-center`}>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h2 className="text-lg font-medium text-gray-800 flex items-center">
                   <MapPin className="mr-2 h-5 w-5" />
                   AI Route Planning
                 </h2>
                 
-                {/* Add break time indicator if in break time */}
+                {/* Break time indicator if in break time */}
                 {customRouteLocations.length > 0 && (() => {
                   const lastLocation = customRouteLocations[customRouteLocations.length - 1];
                   const currentHour = getCurrentHour(lastLocation.time);
                   
                   if (currentHour >= breakStartTime && currentHour < breakEndTime) {
                     return (
-                      <div className={`rounded-lg p-4 ${darkMode ? 'bg-amber-900' : 'bg-amber-100'} border ${darkMode ? 'border-amber-800' : 'border-amber-200'}`}>
+                      <div className="mt-4 rounded-lg p-4 bg-amber-100 border border-amber-200">
                         <div className="flex items-center">
-                          <Coffee className={`h-5 w-5 mr-2 ${darkMode ? 'text-amber-500' : 'text-amber-600'}`} />
-                          <span className={`font-medium ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                          <Coffee className="h-5 w-5 mr-2 text-amber-600" />
+                          <span className="font-medium text-amber-700">
                             Break Time
                           </span>
                         </div>
-                        <p className={`text-sm mt-1 ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+                        <p className="text-sm mt-1 text-amber-600">
                           Currently on break until {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
                           The next trip will be scheduled after your break.
                         </p>
@@ -672,15 +656,15 @@ function App() {
                   return null;
                 })()}
                 
-                <div className={`rounded-lg p-4 ${themeColors.secondaryBg} ${themeColors.border} border`}>
-                  <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <div className="mt-4 rounded-lg p-4 bg-[#f5f0ff]">
+                  <p className="text-sm text-gray-700">
                     Select potential drop-off locations on the map. Our AI will analyze and recommend the most profitable options.
                   </p>
                 </div>
                 {customRouteLocations.length > 1 && (
                   <button
                     onClick={handleFinishRoute}
-                    className={`w-full py-2 rounded-full ${darkMode ? 'bg-green-700 hover:bg-green-600' : 'bg-green-600 hover:bg-green-500'} text-white transition-colors duration-200`}
+                    className="w-full py-2 mt-4 rounded-full bg-[#4caf50] text-white transition-colors duration-200"
                   >
                     Finish Route Planning
                   </button>
@@ -689,7 +673,7 @@ function App() {
             </div>
             
             <div className="lg:col-span-2">
-              <div className={`${themeColors.card} rounded-xl shadow-lg transition-colors duration-300 h-[700px]`}>
+              <div className="bg-white rounded-lg shadow-sm h-[700px]">
                 <DropOffSelection 
                   darkMode={darkMode} 
                   currentLocation={currentLocation}
@@ -708,27 +692,27 @@ function App() {
         {appMode === 'pickup-recommendation' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
-              <div className={`${themeColors.card} p-6 rounded-lg shadow-md transition-colors duration-300 space-y-4`}>
-                <h2 className={`text-lg font-semibold ${themeColors.text} flex items-center`}>
-                  <Navigation className="mr-2 h-5 w-5" />
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h2 className="text-lg font-medium text-gray-800 flex items-center">
+                  <Send className="mr-2 h-5 w-5 transform rotate-45" />
                   AI Pickup Recommendations
                 </h2>
                 
-                {/* Add break time indicator if in break time */}
+                {/* Break time indicator if in break time */}
                 {customRouteLocations.length > 0 && (() => {
                   const lastLocation = customRouteLocations[customRouteLocations.length - 1];
                   const currentHour = getCurrentHour(lastLocation.time);
                   
                   if (currentHour >= breakStartTime && currentHour < breakEndTime) {
                     return (
-                      <div className={`rounded-lg p-4 ${darkMode ? 'bg-amber-900' : 'bg-amber-100'} border ${darkMode ? 'border-amber-800' : 'border-amber-200'}`}>
+                      <div className="mt-4 rounded-lg p-4 bg-amber-100 border border-amber-200">
                         <div className="flex items-center">
-                          <Coffee className={`h-5 w-5 mr-2 ${darkMode ? 'text-amber-500' : 'text-amber-600'}`} />
-                          <span className={`font-medium ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                          <Coffee className="h-5 w-5 mr-2 text-amber-600" />
+                          <span className="font-medium text-amber-700">
                             Break Time
                           </span>
                         </div>
-                        <p className={`text-sm mt-1 ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+                        <p className="text-sm mt-1 text-amber-600">
                           Currently on break until {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
                           The next trip will be scheduled after your break.
                         </p>
@@ -736,49 +720,47 @@ function App() {
                     );
                   }
                   return null;
-                })()}
-                
-                <div className={`rounded-lg p-4 ${themeColors.secondaryBg} ${themeColors.border} border`}>
-                  <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Based on your drop-off location, our AI is suggesting optimal pickup points that maximize your chances of finding passengers.
-                  </p>
-                </div>
-                <div className={`rounded-lg p-4 ${darkMode ? 'bg-purple-900' : 'bg-purple-100'} border ${darkMode ? 'border-purple-800' : 'border-purple-200'}`}>
-                  <p className={`text-sm font-medium ${darkMode ? 'text-purple-200' : 'text-purple-800'}`}>
-                    Completed Trips: {(customRouteLocations.filter(loc => loc.type === 'dropoff').length)}
-                  </p>
-                  <p className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-700'} mt-1`}>
-                    Total Revenue: ${customRouteLocations
-                      .filter(loc => loc.type === 'dropoff')
-                      .reduce((sum, loc) => sum + loc.revenue, 0)
-                      .toFixed(2)}
-                  </p>
-                </div>
+                })()}<div className="mt-4 rounded-lg p-4 bg-[#f5f0ff]">
+                <p className="text-sm text-gray-700">
+                  Based on your drop-off location, our AI is suggesting optimal pickup points that maximize your chances of finding passengers.
+                </p>
               </div>
-            </div>
-            
-            <div className="lg:col-span-2">
-              <div className={`${themeColors.card} rounded-xl shadow-lg transition-colors duration-300 h-[700px]`}>
-                <PickupRecommendation 
-                  darkMode={darkMode} 
-                  currentLocation={currentLocation}
-                  onPickupSelected={handlePickupSelected}
-                  onCancel={resetApp}
-                  themeColors={themeColors}
-                />
+              <div className="mt-4 rounded-lg p-4 bg-[#f5f0ff]">
+                <p className="text-sm font-medium text-gray-700">
+                  Completed Trips: {(customRouteLocations.filter(loc => loc.type === 'dropoff').length)}
+                </p>
+                <p className="text-sm text-[#9747ff] mt-1">
+                  Total Revenue: ${customRouteLocations
+                    .filter(loc => loc.type === 'dropoff')
+                    .reduce((sum, loc) => sum + loc.revenue, 0)
+                    .toFixed(2)}
+                </p>
               </div>
             </div>
           </div>
-        )}
-      </main>
-      
-      <footer className={`py-4 mt-8 ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-purple-100 text-gray-600'}`}>
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm">
-          © {new Date().getFullYear()} RideOptimizer | Optimizing routes for maximum efficiency
+          
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm h-[700px]">
+              <PickupRecommendation 
+                darkMode={darkMode} 
+                currentLocation={currentLocation}
+                onPickupSelected={handlePickupSelected}
+                onCancel={resetApp}
+                themeColors={themeColors}
+              />
+            </div>
+          </div>
         </div>
-      </footer>
-    </div>
-  );
+      )}
+    </main>
+    
+    <footer className="py-4 mt-8 bg-white text-gray-600 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 text-center text-sm">
+        © {new Date().getFullYear()} RideOptimizer | Optimizing routes for maximum efficiency
+      </div>
+    </footer>
+  </div>
+);
 }
 
 export default App;

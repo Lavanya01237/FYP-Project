@@ -4,11 +4,26 @@ import 'leaflet/dist/leaflet.css';
 import { Location } from '../types';
 import { useEffect, useState, useRef } from 'react';
 
-// Import the icon utilities
-import { initializeLeafletIcons, pickupIcon, dropoffIcon, plannedDropoffIcon } from './LeafletIconFix';
+// Define icon URLs explicitly
+const ICON_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png';
+const ICON_RETINA_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png';
+const SHADOW_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png';
 
-// Initialize Leaflet icons when the component is imported
-initializeLeafletIcons();
+// Fix Leaflet icon issue
+import L from 'leaflet';
+
+// Properly initialize Leaflet icons
+// Set default icon globally with type assertion
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: ICON_URL,
+  iconRetinaUrl: ICON_RETINA_URL,
+  shadowUrl: SHADOW_URL,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 interface MapProps {
   locations: Location[];
@@ -31,23 +46,63 @@ interface MapProps {
   };
 }
 
-// Create custom marker label using DivIcon
+// Create custom pickup icon
+const pickupIcon = new Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+  iconSize: [30, 45],
+  iconAnchor: [15, 45],
+  popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
+  shadowSize: [41, 41]
+});
+
+// Create custom dropoff icon
+const dropoffIcon = new Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+  iconSize: [30, 45],
+  iconAnchor: [15, 45],
+  popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
+  shadowSize: [41, 41]
+});
+
+// Create custom planned dropoff icon
+const plannedDropoffIcon = new Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  iconSize: [30, 45],
+  iconAnchor: [15, 45],
+  popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
+  shadowSize: [41, 41]
+});
+
+// Create custom current location icon (blue)
+const currentLocationIcon = new Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  iconSize: [30, 45],
+  iconAnchor: [15, 45],
+  popupAnchor: [1, -34],
+  shadowUrl: SHADOW_URL,
+  shadowSize: [41, 41]
+});
+
+// Create the marker label (for the numbered markers)
 const createMarkerLabel = (index: number, darkMode: boolean) => {
   return new DivIcon({
     html: `<div style="background-color: ${darkMode ? '#1F2937' : 'white'}; 
-                    color: ${darkMode ? 'white' : '#6B46C1'}; 
-                    border: 1px solid ${darkMode ? '#374151' : '#D6BCFA'};
-                    border-radius: 50%;
-                    width: 24px;
-                    height: 24px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 12px;
-                    font-weight: bold;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            ${index + 1}
-           </div>`,
+                      color: ${darkMode ? 'white' : '#6B46C1'}; 
+                      border: 1px solid ${darkMode ? '#374151' : '#D6BCFA'};
+                      border-radius: 50%;
+                      width: 24px;
+                      height: 24px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 12px;
+                      font-weight: bold;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              ${index + 1}
+             </div>`,
     className: '',
     iconSize: [24, 24],
     iconAnchor: [12, 12]
@@ -98,10 +153,19 @@ export function Map({
     border: darkMode ? 'border-gray-700' : 'border-purple-100'
   };
 
-  // Debug logging for customDropoffs
-  useEffect(() => {
-    console.log("Custom dropoffs in Map component:", customDropoffs);
-  }, [customDropoffs]);
+  // Find the most recent location (the one that should have the blue marker)
+  const getMostRecentLocation = () => {
+    if (locations.length <= 0) return null;
+    
+    // If in selection mode, return the current location (first location)
+    if (isSelectionMode) return locations[0];
+    
+    // Sort locations by tripId in descending order to find the most recent
+    const sortedLocations = [...locations].sort((a, b) => b.tripId - a.tripId);
+    
+    // Return the location with the highest tripId
+    return sortedLocations[0];
+  };
 
   // Fetch individual trip routes using OSRM
   useEffect(() => {
@@ -239,6 +303,9 @@ export function Map({
     }
   };
 
+  // Get the most recent location
+  const mostRecentLocation = getMostRecentLocation();
+
   return (
     <div className="relative h-full rounded-lg overflow-hidden">
       <MapContainer
@@ -292,62 +359,74 @@ export function Map({
           );
         })}
 
-        {/* Show current location marker (always visible) */}
-        {locations.length > 0 && (
+        {/* Render regular locations (excluding the most recent one) */}
+        {!isSelectionMode && locations.map((location, index) => {
+          // Skip the most recent location as it will be rendered with a different marker
+          if (mostRecentLocation && location.lat === mostRecentLocation.lat && 
+              location.lng === mostRecentLocation.lng) {
+            return null;
+          }
+          
+          return (
+            <Marker
+              key={`${location.tripId}-${location.type}`}
+              position={[location.lat, location.lng]}
+              icon={location.type === 'pickup' ? pickupIcon : dropoffIcon}
+              eventHandlers={{
+                click: () => handleTripClick(location.tripId)
+              }}
+            >
+              <Popup className={darkMode ? 'dark-popup' : ''}>
+                <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className={`w-3 h-3 rounded-full ${location.type === 'pickup' ? 'bg-yellow-500' : 'bg-purple-500'}`} />
+                    <span className="font-medium">
+                      {location.type === 'pickup' ? 'Pick-up' : 'Drop-off'}
+                    </span>
+                  </div>
+                  {location.time && <p className="text-sm mb-2">Time: {location.time}</p>}
+                  {location.type === 'dropoff' && (
+                    <p className="text-green-600 font-medium text-sm mb-2">Revenue: ${location.revenue.toFixed(2)}</p>
+                  )}
+                  <p className="text-xs mt-1 text-gray-500">
+                    {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
+        {/* Render the most recent location with a blue marker */}
+        {mostRecentLocation && (
           <Marker
-            key="current-location"
-            position={[locations[0].lat, locations[0].lng]}
-            icon={new Icon({
-              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-              iconSize: [30, 45],
-              iconAnchor: [15, 45],
-              popupAnchor: [1, -34],
-              shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-              shadowSize: [41, 41]
-            })}
+            key={`most-recent-${mostRecentLocation.tripId}-${mostRecentLocation.type}`}
+            position={[mostRecentLocation.lat, mostRecentLocation.lng]}
+            icon={currentLocationIcon}
+            zIndexOffset={1000} // Ensure this marker appears on top
           >
             <Popup className={darkMode ? 'dark-popup' : ''} autoClose={false}>
               <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>
-                <p className="font-medium mb-2">Current Location</p>
-                <p className="text-xs text-gray-500">
-                  {locations[0].lat.toFixed(4)}, {locations[0].lng.toFixed(4)}
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="font-medium">
+                    {isSelectionMode ? 'Current Location' : 
+                    (mostRecentLocation.type === 'pickup' ? 'Current Pickup Location' : 'Current Dropoff Location')}
+                  </span>
+                </div>
+                {mostRecentLocation.time && <p className="text-sm mb-2">Time: {mostRecentLocation.time}</p>}
+                {mostRecentLocation.type === 'dropoff' && mostRecentLocation.revenue > 0 && (
+                  <p className="text-green-600 font-medium text-sm mb-2">Revenue: ${mostRecentLocation.revenue.toFixed(2)}</p>
+                )}
+                <p className="text-xs mt-1 text-gray-500">
+                  {mostRecentLocation.lat.toFixed(4)}, {mostRecentLocation.lng.toFixed(4)}
                 </p>
               </div>
             </Popup>
           </Marker>
         )}
 
-        {/* Render regular locations when not in selection mode */}
-        {!isSelectionMode && locations.slice(1).map((location, index) => (
-          <Marker
-            key={`${location.tripId}-${location.type}`}
-            position={[location.lat, location.lng]}
-            icon={location.type === 'pickup' ? pickupIcon : dropoffIcon}
-            eventHandlers={{
-              click: () => handleTripClick(location.tripId)
-            }}
-          >
-            <Popup className={darkMode ? 'dark-popup' : ''}>
-              <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className={`w-3 h-3 rounded-full ${location.type === 'pickup' ? 'bg-yellow-500' : 'bg-purple-500'}`} />
-                  <span className="font-medium">
-                    {location.type === 'pickup' ? 'Pick-up' : 'Drop-off'}
-                  </span>
-                </div>
-                {location.time && <p className="text-sm mb-2">Time: {location.time}</p>}
-                {location.type === 'dropoff' && (
-                  <p className="text-green-600 font-medium text-sm mb-2">Revenue: ${location.revenue.toFixed(2)}</p>
-                )}
-                <p className="text-xs mt-1 text-gray-500">
-                  {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-
-        {/* Render custom dropoff locations - this is the critical part for marker visibility */}
+        {/* Render custom dropoff locations */}
         {customDropoffs && customDropoffs.length > 0 && customDropoffs.map((dropoff) => (
           <Marker
             key={`custom-dropoff-${dropoff.id}`}
@@ -386,6 +465,27 @@ export function Map({
             </Popup>
           </Marker>
         )}
+
+        {/* Sequential marker labels - Fixed to ensure they appear */}
+        {!isSelectionMode && locations.map((location, index) => {
+          // Skip the most recent location for numbered markers
+          if (mostRecentLocation && location.lat === mostRecentLocation.lat && 
+              location.lng === mostRecentLocation.lng) {
+            return null;
+          }
+          
+          // Create a DivIcon for this marker
+          const markerLabel = createMarkerLabel(index, darkMode);
+          
+          return (
+            <Marker
+              key={`label-${location.tripId}-${location.type}-${index}`}
+              position={[location.lat, location.lng]}
+              icon={markerLabel}
+              zIndexOffset={1000 + index} // High z-index to ensure visibility
+            />
+          );
+        })}
       </MapContainer>
 
       {/* Selection mode indicator */}

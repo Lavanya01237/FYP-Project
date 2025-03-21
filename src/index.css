@@ -1,20 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Montserrat:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Base Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
+  from { opacity: 0; transform: translateX(10px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideInBottom {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -25,26 +27,20 @@
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes shimmer {
-  to {
-    background-position: 200% 0;
-  }
+  50% { transform: translateY(-5px); }
 }
 
 /* Animation Classes */
 .animate-fadeIn {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
 .animate-slideInRight {
-  animation: slideInRight 0.5s ease-out forwards;
+  animation: slideInRight 0.4s ease-out forwards;
 }
 
 .animate-slideInBottom {
-  animation: slideInBottom 0.5s ease-out forwards;
+  animation: slideInBottom 0.4s ease-out forwards;
 }
 
 .animate-pulse {
@@ -52,13 +48,13 @@
 }
 
 .animate-float {
-  animation: float 3s ease-in-out infinite;
+  animation: float 2s ease-in-out infinite;
 }
 
 /* Custom scrollbar for WebKit browsers */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -66,8 +62,8 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 10px;
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
 }
 
 .scrollbar-hide {
@@ -83,8 +79,9 @@
 .dark-popup .leaflet-popup-content-wrapper {
   background-color: #1F2937;
   color: #F9FAFB;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  box-shadow: none;
+  border: 1px solid #374151;
 }
 
 .dark-popup .leaflet-popup-tip {
@@ -93,75 +90,9 @@
 
 /* Light theme popup styling */
 .leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* Loading animation */
-.loading-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.2) 20%,
-    rgba(255, 255, 255, 0.5) 60%,
-    rgba(255, 255, 255, 0)
-  );
-  background-size: 200% 100%;
-  background-position: -100% 0;
-  animation: shimmer 2s infinite;
-}
-
-/* Dark mode loading shimmer */
-.dark-loading-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    rgba(55, 65, 81, 0) 0,
-    rgba(55, 65, 81, 0.3) 20%,
-    rgba(55, 65, 81, 0.5) 60%,
-    rgba(55, 65, 81, 0)
-  );
-  background-size: 200% 100%;
-  background-position: -100% 0;
-  animation: shimmer 2s infinite;
-}
-
-/* Custom hover effects */
-.hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* Dark mode hover lift */
-.dark-hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-}
-
-/* Purple-Pink Gradient Background */
-.bg-gradient-purple-pink {
-  background: linear-gradient(135deg, #F5F3FF 0%, #FCE7F3 100%);
-}
-
-/* Additional utility classes */
-.rounded-xl {
-  border-radius: 1rem;
-}
-
-.rounded-2xl {
-  border-radius: 1.5rem;
-}
-
-.shadow-purple {
-  box-shadow: 0 4px 14px 0 rgba(165, 180, 252, 0.3);
-}
-
-/* Add custom focus style for form elements */
-.focus-purple {
-  @apply focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500;
+  border-radius: 4px;
+  box-shadow: none;
+  border: 1px solid #E5E7EB;
 }
 
 /* Fix for Leaflet marker icons */
@@ -170,7 +101,7 @@
 }
 
 .leaflet-marker-icon {
-  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.2));
 }
 
 /* Ensure marker popups appear above other elements */
@@ -180,29 +111,9 @@
 
 /* Highlight markers on hover */
 .leaflet-marker-icon:hover {
-  filter: brightness(1.2) drop-shadow(3px 3px 3px rgba(0, 0, 0, 0.6));
-  transform: scale(1.1);
+  filter: brightness(1.1);
+  transform: scale(1.05);
   transition: all 0.2s ease;
-}
-
-/* Trip details container scrollbar styling */
-.trip-details-container {
-  max-height: 300px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-.trip-details-container::-webkit-scrollbar {
-  width: 4px;
-}
-
-.trip-details-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.trip-details-container::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 10px;
 }
 
 /* Route animations */
@@ -213,30 +124,72 @@
 }
 
 .route-path {
-  stroke-dasharray: 10;
-  stroke-dashoffset: 10;
-  animation: dash 1.5s linear forwards;
+  stroke-dasharray: 4;
+  stroke-dashoffset: 4;
+  animation: dash 1s linear forwards;
 }
 
-/* Marker animations */
-@keyframes pulse-marker {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+/* Minimalist focus styles */
+input:focus, select:focus, button:focus {
+  outline: none;
+  border-color: #9CA3AF;
 }
 
-.pulse-marker {
-  animation: pulse-marker 1.5s infinite;
+/* Remove default button styling */
+button {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-/* Route view button pulse effect when new trip is added */
-@keyframes highlight-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+/* Clean border styles */
+.border {
+  border-width: 1px;
 }
 
-.route-view-btn-highlight {
-  animation: highlight-pulse 1.5s ease-out;
+/* Rounded corners - less curve */
+.rounded-md {
+  border-radius: 4px;
+}
+
+/* Transition effects */
+.transition-all {
+  transition-property: all;
+  transition-duration: 200ms;
+}
+
+/* Custom map styles */
+.leaflet-container {
+  border-radius: 4px;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid #E5E7EB !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+}
+
+.leaflet-control-zoom a {
+  border-radius: 0 !important;
+}
+
+.dark-theme .leaflet-control-zoom {
+  border: 1px solid #374151 !important;
+}
+
+.dark-theme .leaflet-control-zoom a {
+  background-color: #1F2937 !important;
+  color: #F9FAFB !important;
+}
+
+/* App-specific styles */
+.search-container {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-weight: 500;
+  letter-spacing: -0.025em;
 }
 

@@ -116,11 +116,11 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
   return (
     <div className={`rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${colors.card} ${colors.border} border`}>
       <div 
-        className={`px-6 py-4 flex justify-between items-center ${expanded ? 'border-b' : ''} ${colors.border} cursor-pointer`}
+        className={`px-6 py-5 flex justify-between items-center ${expanded ? 'border-b' : ''} ${colors.border} cursor-pointer`}
         onClick={() => setExpanded(!expanded)}
       >
-        <h2 className={`text-lg font-semibold ${colors.text} flex items-center`}>
-          <MapPin className={`mr-2 h-5 w-5 ${colors.highlight}`} />
+        <h2 className={`text-xl font-bold ${colors.text} flex items-center`}>
+          <MapPin className={`mr-3 h-6 w-6 ${colors.highlight}`} />
           Plan Your Route
         </h2>
         <div className={`transform transition-transform ${expanded ? 'rotate-180' : ''}`}>
@@ -142,25 +142,25 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
       </div>
 
       {expanded && (
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="px-7 py-6 space-y-7">
+          <div className="space-y-5">
             <div>
-              <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+              <label className={`block text-base font-bold mb-2 ${colors.text}`}>
                 Starting Location
               </label>
               <div className="relative">
-                <div className={`absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none`}>
+                <div className={`absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none`}>
                   <MapPin className={`h-5 w-5 ${darkMode ? 'text-gray-500' : 'text-purple-400'}`} />
                 </div>
                 <input
                   id="startLocationInput"
                   type="text"
                   placeholder="Enter location or coordinates"
-                  className={`pl-10 w-full rounded-full h-12 border ${
+                  className={`pl-12 w-full rounded-full h-14 border ${
                     darkMode 
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                       : 'bg-white border-purple-200 text-gray-900 placeholder-gray-400'
-                  } px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200`}
+                  } px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 text-base`}
                   value={`${lat.toFixed(4)}, ${lng.toFixed(4)}`}
                   onChange={(e) => {
                     const parts = e.target.value.split(',');
@@ -178,21 +178,21 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                   type="button"
                   onClick={getCurrentLocation}
                   disabled={isGettingLocation}
-                  className={`absolute inset-y-0 right-0 flex items-center pr-3 ${
+                  className={`absolute inset-y-0 right-0 flex items-center pr-4 ${
                     isGettingLocation ? 'opacity-50' : 'hover:text-purple-500'
                   } transition-colors duration-200`}
                   title="Use my current location"
                 >
-                  <Locate size={18} className={`${darkMode ? 'text-purple-400' : 'text-purple-600'} ${isGettingLocation ? 'animate-pulse' : ''}`} />
+                  <Locate size={20} className={`${darkMode ? 'text-purple-400' : 'text-purple-600'} ${isGettingLocation ? 'animate-pulse' : ''}`} />
                 </button>
               </div>
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+              <label className={`block text-base font-bold mb-2 ${colors.text}`}>
                 Popular Locations
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {popularLocations.map((location, index) => (
                   <button
                     key={index}
@@ -201,11 +201,11 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                       setLat(location.lat);
                       setLng(location.lng);
                     }}
-                    className={`text-xs py-1.5 px-3 rounded-full ${
+                    className={`text-sm py-2 px-4 rounded-full ${
                       darkMode 
                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
                         : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                    } transition-colors duration-200`}
+                    } transition-colors duration-200 font-medium`}
                   >
                     {location.name}
                   </button>
@@ -213,13 +213,13 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+                <label className={`block text-base font-bold mb-2 ${colors.text}`}>
                   Start Time
                 </label>
                 <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none`}>
+                  <div className={`absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none`}>
                     <Clock className={`h-5 w-5 ${darkMode ? 'text-gray-500' : 'text-purple-400'}`} />
                   </div>
                   <select
@@ -232,11 +232,11 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                         setEndTime(newStartTime + 8 > 24 ? 24 : newStartTime + 8);
                       }
                     }}
-                    className={`pl-10 w-full rounded-full h-12 border ${
+                    className={`pl-12 w-full rounded-full h-14 border ${
                       darkMode 
                         ? 'bg-gray-700 border-gray-600 text-white' 
                         : 'bg-white border-purple-200 text-gray-900'
-                    } px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 appearance-none`}
+                    } px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 appearance-none text-base`}
                   >
                     {Array.from({ length: 19 }, (_, i) => i + 6).map((hour) => (
                       <option key={hour} value={hour} className={darkMode ? 'bg-gray-700' : ''}>
@@ -244,7 +244,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                     <svg 
                       xmlns="http://www.w3.org/2000/svg" 
                       width="16" 
@@ -264,21 +264,21 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
               </div>
               
               <div>
-                <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+                <label className={`block text-base font-bold mb-2 ${colors.text}`}>
                   End Time
                 </label>
                 <div className="relative">
-                  <div className={`absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none`}>
+                  <div className={`absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none`}>
                     <Clock className={`h-5 w-5 ${darkMode ? 'text-gray-500' : 'text-purple-400'}`} />
                   </div>
                   <select
                     value={endTime}
                     onChange={(e) => setEndTime(parseInt(e.target.value, 10))}
-                    className={`pl-10 w-full rounded-full h-12 border ${
+                    className={`pl-12 w-full rounded-full h-14 border ${
                       darkMode 
                         ? 'bg-gray-700 border-gray-600 text-white' 
                         : 'bg-white border-purple-200 text-gray-900'
-                    } px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 appearance-none`}
+                    } px-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors duration-200 appearance-none text-base`}
                   >
                     {Array.from({ length: 25 - startTime }, (_, i) => i + startTime + 1)
                       .map((hour) => {
@@ -294,7 +294,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                         );
                       })}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                     <svg 
                       xmlns="http://www.w3.org/2000/svg" 
                       width="16" 
@@ -315,14 +315,14 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
             </div>
 
             {/* Break Time Section */}
-            <div className={`rounded-lg p-4 ${colors.secondaryBg} ${colors.border} border`}>
+            <div className={`rounded-lg p-5 ${colors.secondaryBg} ${colors.border} border mt-1`}>
               <div 
                 className="flex justify-between items-center cursor-pointer"
                 onClick={() => setBreakTimeExpanded(!breakTimeExpanded)}
               >
                 <div className="flex items-center">
-                  <Coffee className={`h-5 w-5 mr-2 ${colors.highlight}`} />
-                  <span className={`font-medium ${colors.text}`}>Break Time</span>
+                  <Coffee className={`h-5 w-5 mr-3 ${colors.highlight}`} />
+                  <span className={`font-bold text-base ${colors.text}`}>Break Time</span>
                 </div>
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -341,8 +341,8 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
               </div>
               
               {breakTimeExpanded && (
-                <div className="mt-3 space-y-3">
-                  <div className="flex flex-wrap gap-2">
+                <div className="mt-4 space-y-4">
+                  <div className="flex flex-wrap gap-2.5">
                     {defaultBreakOptions.map((option, index) => (
                       <button
                         key={index}
@@ -356,11 +356,11 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                             alert('Break time must be within your shift hours.');
                           }
                         }}
-                        className={`text-xs py-1.5 px-3 rounded-full ${
+                        className={`text-sm py-2 px-4 rounded-full ${
                           !customBreak && breakStartTime === option.startTime && breakEndTime === option.endTime
                             ? (darkMode ? 'bg-purple-700 text-white' : 'bg-purple-500 text-white')
                             : (darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200')
-                        } transition-colors duration-200`}
+                        } transition-colors duration-200 font-medium`}
                       >
                         {option.label}
                       </button>
@@ -368,20 +368,20 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                     <button
                       type="button"
                       onClick={() => setCustomBreak(true)}
-                      className={`text-xs py-1.5 px-3 rounded-full ${
+                      className={`text-sm py-2 px-4 rounded-full ${
                         customBreak
                           ? (darkMode ? 'bg-purple-700 text-white' : 'bg-purple-500 text-white')
                           : (darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200')
-                      } transition-colors duration-200`}
+                      } transition-colors duration-200 font-medium`}
                     >
                       Custom Break
                     </button>
                   </div>
                   
                   {(customBreak || (!defaultBreakOptions.some(opt => opt.startTime === breakStartTime && opt.endTime === breakEndTime))) && (
-                    <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="grid grid-cols-2 gap-4 mt-3">
                       <div>
-                        <label className={`block text-xs mb-1 ${colors.text}`}>
+                        <label className={`block text-sm font-medium mb-1.5 ${colors.text}`}>
                           Break Start
                         </label>
                         <select
@@ -394,11 +394,11 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                             }
                             setCustomBreak(true);
                           }}
-                          className={`w-full rounded-lg h-10 border ${
+                          className={`w-full rounded-lg h-11 border ${
                             darkMode 
                               ? 'bg-gray-700 border-gray-600 text-white' 
                               : 'bg-white border-purple-200 text-gray-900'
-                          } px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm`}
+                          } px-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm`}
                         >
                           {Array.from({ length: endTime - startTime }, (_, i) => i + startTime).map((hour) => (
                             <option key={hour} value={hour}>
@@ -408,7 +408,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                         </select>
                       </div>
                       <div>
-                        <label className={`block text-xs mb-1 ${colors.text}`}>
+                        <label className={`block text-sm font-medium mb-1.5 ${colors.text}`}>
                           Break End
                         </label>
                         <select
@@ -417,11 +417,11 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                             setBreakEndTime(parseInt(e.target.value, 10));
                             setCustomBreak(true);
                           }}
-                          className={`w-full rounded-lg h-10 border ${
+                          className={`w-full rounded-lg h-11 border ${
                             darkMode 
                               ? 'bg-gray-700 border-gray-600 text-white' 
                               : 'bg-white border-purple-200 text-gray-900'
-                          } px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm`}
+                          } px-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm`}
                         >
                           {Array.from({ length: endTime - breakStartTime }, (_, i) => i + breakStartTime + 1).map((hour) => (
                             <option key={hour} value={hour}>
@@ -433,9 +433,9 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                     </div>
                   )}
                   
-                  <div className={`text-xs p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} ${colors.text}`}>
+                  <div className={`text-sm p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} ${colors.text} mt-1`}>
                     Current break time: <strong>{formatTimeDisplay(breakStartTime)} - {formatTimeDisplay(breakEndTime)}</strong>
-                    <p className={`mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <p className={`mt-1.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       No routes will be scheduled during this period.
                     </p>
                   </div>
@@ -443,39 +443,39 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
               )}
               
               {!breakTimeExpanded && (
-                <div className={`mt-2 text-xs ${colors.text}`}>
+                <div className={`mt-2.5 text-sm ${colors.text}`}>
                   Current break: {formatTimeDisplay(breakStartTime)} - {formatTimeDisplay(breakEndTime)}
                 </div>
               )}
             </div>
 
-            <div>
-              <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+            <div className="mt-1">
+              <label className={`block text-base font-bold mb-2.5 ${colors.text}`}>
                 Optimization Algorithm
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => setAlgorithm('reinforcement')}
-                  className={`h-12 flex items-center justify-center space-x-2 rounded-full border ${
+                  className={`h-14 flex items-center justify-center space-x-3 rounded-full border ${
                     algorithm === 'reinforcement'
                       ? (darkMode ? 'bg-purple-700 border-purple-600 text-white' : 'bg-purple-500 border-purple-400 text-white')
                       : (darkMode ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-purple-200 text-gray-600')
-                  } transition-colors duration-200`}
+                  } transition-colors duration-200 text-base font-medium`}
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-5 w-5" />
                   <span>AI Optimized</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setAlgorithm('greedy')}
-                  className={`h-12 flex items-center justify-center space-x-2 rounded-full border ${
+                  className={`h-14 flex items-center justify-center space-x-3 rounded-full border ${
                     algorithm === 'greedy'
                       ? (darkMode ? 'bg-purple-700 border-purple-600 text-white' : 'bg-purple-500 border-purple-400 text-white')
                       : (darkMode ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-purple-200 text-gray-600')
-                  } transition-colors duration-200`}
+                  } transition-colors duration-200 text-base font-medium`}
                 >
-                  <Calendar className="h-4 w-4" />
+                  <Calendar className="h-5 w-5" />
                   <span>Standard</span>
                 </button>
               </div>
@@ -485,15 +485,15 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+            className={`w-full h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
               isLoading 
                 ? (darkMode ? 'bg-purple-700' : 'bg-purple-400') 
                 : (darkMode ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-500 hover:bg-purple-400')
-            } text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98] shadow-md`}
+            } text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transform hover:scale-[1.01] active:scale-[0.99] shadow-md text-base font-medium mt-5`}
           >
             {isLoading ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                 Optimizing Route...
               </>
             ) : (
