@@ -4,24 +4,11 @@ import 'leaflet/dist/leaflet.css';
 import { Location } from '../types';
 import { useEffect, useState, useRef } from 'react';
 
-// Fix Leaflet icon issue by importing marker icon images and setting them globally
-import L from 'leaflet';
+// Import the icon utilities
+import { initializeLeafletIcons, pickupIcon, dropoffIcon, plannedDropoffIcon } from './LeafletIconFix';
 
-// Define icon URLs explicitly
-const ICON_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png';
-const ICON_RETINA_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png';
-const SHADOW_URL = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png';
-
-// Set default icon globally
-L.Icon.Default.mergeOptions({
-  iconUrl: ICON_URL,
-  iconRetinaUrl: ICON_RETINA_URL,
-  shadowUrl: SHADOW_URL,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// Initialize Leaflet icons when the component is imported
+initializeLeafletIcons();
 
 interface MapProps {
   locations: Location[];
@@ -44,41 +31,38 @@ interface MapProps {
   };
 }
 
-// Create custom pickup icon
-const pickupIcon = new Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: SHADOW_URL,
-  shadowSize: [41, 41]
-});
-
-// Create custom dropoff icon
-const dropoffIcon = new Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: SHADOW_URL,
-  shadowSize: [41, 41]
-});
-
-// Create custom planned dropoff icon (for custom dropoffs)
-const plannedDropoffIcon = new Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-pink.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: SHADOW_URL,
-  shadowSize: [41, 41]
-});
+// Create custom marker label using DivIcon
+const createMarkerLabel = (index: number, darkMode: boolean) => {
+  return new DivIcon({
+    html: `<div style="background-color: ${darkMode ? '#1F2937' : 'white'}; 
+                    color: ${darkMode ? 'white' : '#6B46C1'}; 
+                    border: 1px solid ${darkMode ? '#374151' : '#D6BCFA'};
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    font-weight: bold;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            ${index + 1}
+           </div>`,
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+};
 
 // Location selection component that captures map clicks
 function LocationSelector({ onLocationSelected }: { onLocationSelected: (lat: number, lng: number) => void }) {
-  useMapEvents({
+  const map = useMapEvents({
     click: (e) => {
+      console.log("Map clicked at:", e.latlng);
       onLocationSelected(e.latlng.lat, e.latlng.lng);
+      
+      // Center map on the selected location
+      map.panTo(e.latlng);
     }
   });
 
@@ -114,6 +98,11 @@ export function Map({
     border: darkMode ? 'border-gray-700' : 'border-purple-100'
   };
 
+  // Debug logging for customDropoffs
+  useEffect(() => {
+    console.log("Custom dropoffs in Map component:", customDropoffs);
+  }, [customDropoffs]);
+
   // Fetch individual trip routes using OSRM
   useEffect(() => {
     const fetchTripRoutes = async () => {
@@ -135,7 +124,7 @@ export function Map({
               const data = await response.json();
               
               if (data.routes && data.routes[0] && data.routes[0].geometry && data.routes[0].geometry.coordinates) {
-                // Extract coordinates from GeoJSON with better error handling - using alternative approach
+                // Extract coordinates from GeoJSON with better error handling
                 const coordinates: [number, number][] = [];
                 for (const coord of data.routes[0].geometry.coordinates) {
                   if (Array.isArray(coord) && coord.length >= 2) {
@@ -231,35 +220,22 @@ export function Map({
     }
   };
 
-  const createMarkerLabel = (index: number) => {
-    return new DivIcon({
-      html: `<div style="background-color: ${darkMode ? '#1F2937' : 'white'}; 
-                      color: ${darkMode ? 'white' : '#6B46C1'}; 
-                      border: 1px solid ${darkMode ? '#374151' : '#D6BCFA'};
-                      border-radius: 50%;
-                      width: 24px;
-                      height: 24px;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      font-size: 12px;
-                      font-weight: bold;
-                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              ${index + 1}
-             </div>`,
-      className: '',
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
-    });
-  };
-
   // Handle map clicks for location selection
   const handleLocationSelected = (lat: number, lng: number) => {
+    // Set the temporary marker at the clicked location
     setTempMarker({ lat, lng });
+    
+    // Log to verify marker was set
+    console.log("Setting temporary marker at:", lat, lng);
     
     // Call the callback with the selected location
     if (onLocationSelected) {
       onLocationSelected(lat, lng);
+    }
+    
+    // If we have a map reference, pan to the selected location
+    if (mapRef.current) {
+      mapRef.current.panTo([lat, lng]);
     }
   };
 
@@ -316,8 +292,33 @@ export function Map({
           );
         })}
 
+        {/* Show current location marker (always visible) */}
+        {locations.length > 0 && (
+          <Marker
+            key="current-location"
+            position={[locations[0].lat, locations[0].lng]}
+            icon={new Icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+              iconSize: [30, 45],
+              iconAnchor: [15, 45],
+              popupAnchor: [1, -34],
+              shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+              shadowSize: [41, 41]
+            })}
+          >
+            <Popup className={darkMode ? 'dark-popup' : ''} autoClose={false}>
+              <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>
+                <p className="font-medium mb-2">Current Location</p>
+                <p className="text-xs text-gray-500">
+                  {locations[0].lat.toFixed(4)}, {locations[0].lng.toFixed(4)}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
         {/* Render regular locations when not in selection mode */}
-        {!isSelectionMode && locations.map((location, index) => (
+        {!isSelectionMode && locations.slice(1).map((location, index) => (
           <Marker
             key={`${location.tripId}-${location.type}`}
             position={[location.lat, location.lng]}
@@ -346,22 +347,21 @@ export function Map({
           </Marker>
         ))}
 
-        {/* Render custom dropoff locations */}
-        {customDropoffs && customDropoffs.map((dropoff) => (
+        {/* Render custom dropoff locations - this is the critical part for marker visibility */}
+        {customDropoffs && customDropoffs.length > 0 && customDropoffs.map((dropoff) => (
           <Marker
             key={`custom-dropoff-${dropoff.id}`}
             position={[dropoff.lat, dropoff.lng]}
             icon={plannedDropoffIcon}
           >
-            <Popup className={darkMode ? 'dark-popup' : ''}>
+            <Popup className={darkMode ? 'dark-popup' : ''} autoClose={false}>
               <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>
                 <div className="flex items-center space-x-2 mb-2">
-                  <span className="w-3 h-3 rounded-full bg-pink-500" />
+                  <span className="w-3 h-3 rounded-full bg-red-500" />
                   <span className="font-medium">
-                    Custom Drop-off
+                    {dropoff.label}
                   </span>
                 </div>
-                <p className="text-sm mb-2">{dropoff.label}</p>
                 <p className="text-xs mt-1 text-gray-500">
                   {dropoff.lat.toFixed(4)}, {dropoff.lng.toFixed(4)}
                 </p>
@@ -376,7 +376,7 @@ export function Map({
             position={[tempMarker.lat, tempMarker.lng]}
             icon={plannedDropoffIcon}
           >
-            <Popup className={darkMode ? 'dark-popup' : ''}>
+            <Popup className={darkMode ? 'dark-popup' : ''} autoClose={false} closeOnClick={false}>
               <div className={`text-sm p-2 ${darkMode ? 'text-white' : ''}`}>
                 <p className="font-medium mb-2">Selected Location</p>
                 <p className="text-xs text-gray-500">
@@ -386,49 +386,12 @@ export function Map({
             </Popup>
           </Marker>
         )}
-
-        {/* Sequential marker labels */}
-        {!isSelectionMode && locations.map((location, index) => (
-          <Marker
-            key={`label-${location.tripId}-${location.type}`}
-            position={[location.lat, location.lng]}
-            icon={createMarkerLabel(index)}
-            zIndexOffset={1000}
-          />
-        ))}
       </MapContainer>
 
       {/* Selection mode indicator */}
       {isSelectionMode && (
         <div className={`absolute top-4 left-4 z-10 ${darkMode ? 'bg-purple-900' : 'bg-purple-600'} text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium`}>
           Click on the map to select a drop-off location
-        </div>
-      )}
-
-      {/* Trip selection legend - only show when not in selection mode */}
-      {!isSelectionMode && routes.length > 0 && (
-        <div className={`absolute bottom-4 left-4 z-10 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-3 shadow-lg border ${darkMode ? 'border-gray-700' : 'border-purple-100'}`}>
-          <div className="text-xs font-medium mb-2">Trip Selection:</div>
-          <div className="space-y-1.5">
-            {routes.map((route, index) => (
-              <div 
-                key={route.pickup.tripId}
-                className={`text-xs flex items-center space-x-1.5 py-1 px-2 rounded-lg cursor-pointer transition-colors duration-200 ${
-                  activeTrip === route.pickup.tripId 
-                    ? (darkMode ? 'bg-gray-700 text-purple-300' : 'bg-purple-100 text-purple-800')
-                    : (darkMode ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-800 hover:bg-purple-50')
-                }`}
-                onClick={() => handleTripClick(route.pickup.tripId)}
-              >
-                <div className={`w-2 h-2 rounded-full ${
-                  activeTrip === route.pickup.tripId 
-                    ? (darkMode ? 'bg-purple-400' : 'bg-purple-600')
-                    : (darkMode ? 'bg-gray-500' : 'bg-gray-400')
-                }`} />
-                <span>Trip {index + 1}: {route.pickup.time} → {route.dropoff.time}</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

@@ -1,15 +1,12 @@
-import { useEffect } from 'react';
 import L from 'leaflet';
 
-// This needs to be a separate module that gets imported at the app's entry point
-// to ensure Leaflet icons are properly initialized before any map renders
-
+// Fix for Leaflet's default icon
+// This function sets up the default icons for Leaflet markers
 export function initializeLeafletIcons() {
-  // Fix Leaflet's icon paths
-  // Fix Leaflet's icon paths
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
+  // Safely delete the property with type assertion
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
   
-  // Explicitly define icon paths
+  // Set the default icon options
   L.Icon.Default.mergeOptions({
     iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -21,20 +18,11 @@ export function initializeLeafletIcons() {
   });
 }
 
-export function LeafletIconFix() {
-  useEffect(() => {
-    // Initialize Leaflet icons when component mounts
-    initializeLeafletIcons();
-  }, []);
-  
-  return null;
-}
-
-// Custom icons for different marker types
+// Custom icons with proper type safety
 export const pickupIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconSize: [30, 45],  // Larger for better visibility
+  iconAnchor: [15, 45],
   popupAnchor: [1, -34],
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   shadowSize: [41, 41]
@@ -42,18 +30,20 @@ export const pickupIcon = new L.Icon({
 
 export const dropoffIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconSize: [30, 45],  // Larger for better visibility
+  iconAnchor: [15, 45],
   popupAnchor: [1, -34],
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   shadowSize: [41, 41]
 });
 
 export const plannedDropoffIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-pink.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  iconSize: [30, 45],  // Larger for better visibility
+  iconAnchor: [15, 45],
   popupAnchor: [1, -34],
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   shadowSize: [41, 41]
 });
+
+// Additional utility functions can be added here
