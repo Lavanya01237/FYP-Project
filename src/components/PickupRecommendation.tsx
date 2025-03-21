@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Map } from './Map';
-import { Navigation, ThumbsUp, X, ArrowRight, TrendingUp, MapPin, PlusCircle, RefreshCw } from 'lucide-react';
+import { Navigation, ThumbsUp, X, ArrowRight, TrendingUp, MapPin, PlusCircle, RefreshCw, Coffee } from 'lucide-react';
 
 interface PickupLocation {
   id: number;
@@ -12,6 +12,7 @@ interface PickupLocation {
   duration?: number;
   prediction?: number;
   isCustom?: boolean;
+  wouldCrossBreakTime?: boolean;
 }
 
 interface PickupRecommendationProps {
@@ -27,6 +28,10 @@ interface PickupRecommendationProps {
     secondaryBg: string;
     border: string;
   };
+  // Add these new properties
+  currentTime?: string;
+  breakStartTime?: number;
+  breakEndTime?: number;
 }
 
 export function PickupRecommendation({ 
@@ -34,7 +39,10 @@ export function PickupRecommendation({
   currentLocation, 
   onPickupSelected, 
   onCancel,
-  themeColors 
+  themeColors,
+  currentTime,
+  breakStartTime = 12,
+  breakEndTime = 13
 }: PickupRecommendationProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -44,6 +52,7 @@ export function PickupRecommendation({
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customLocation, setCustomLocation] = useState<{lat: number, lng: number} | null>(null);
   const [customLabel, setCustomLabel] = useState('');
+  const [isBreakTime, setIsBreakTime] = useState(false);
 
   const colors = themeColors || {
     bg: darkMode ? 'bg-gray-900' : 'bg-purple-50',
@@ -54,6 +63,23 @@ export function PickupRecommendation({
     border: darkMode ? 'border-gray-700' : 'border-purple-100'
   };
 
+  // Helper function to check if a time is during break
+  const isDuringBreak = (hourString?: string): boolean => {
+    if (!hourString) return false;
+    
+    const [time, period] = hourString.split(' ');
+    let hour = parseInt(time.split(':')[0]);
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    
+    return hour >= breakStartTime && hour < breakEndTime;
+  };
+
+  // Check if current time is during break
+  useEffect(() => {
+    setIsBreakTime(isDuringBreak(currentTime));
+  }, [currentTime, breakStartTime, breakEndTime]);
+
   useEffect(() => {
     const fetchRecommendations = async () => {
       setIsLoading(true);
@@ -62,6 +88,13 @@ export function PickupRecommendation({
         // In a real implementation, this would call your backend API with the RL algorithm
         // For now, we'll simulate the analysis with a timeout and random locations
         await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // If it's break time, don't generate recommendations
+        if (isBreakTime) {
+          setRecommendedPickups([]);
+          setIsLoading(false);
+          return;
+        }
         
         // Generate 3-5 pickup recommendations around the current location
         const numRecommendations = Math.floor(Math.random() * 3) + 3; // 3-5 recommendations
@@ -90,9 +123,31 @@ export function PickupRecommendation({
           // Positive = more demand than supply (more favorable)
           const prediction = Math.random() * 4 - 2; 
           
+          // Would cross break time check
+          let wouldCrossBreakTime = false;
+          if (currentTime) {
+            const [time, period] = currentTime.split(' ');
+            let hour = parseInt(time.split(':')[0]);
+            let minute = parseInt(time.split(':')[1]);
+            if (period === 'PM' && hour !== 12) hour += 12;
+            if (period === 'AM' && hour === 12) hour = 0;
+            
+            // Estimate arrival hour
+            const durationMinutes = Math.ceil(duration / 60);
+            const totalMinutes = hour * 60 + minute + durationMinutes;
+            const arrivalHour = Math.floor(totalMinutes / 60);
+            
+            wouldCrossBreakTime = (arrivalHour >= breakStartTime && arrivalHour < breakEndTime);
+          }
+          
           // Calculate a score based on the prediction and distance
           // Higher score = better pickup location
-          const score = (prediction > 0 ? prediction * 2 : 0) - (distance * 0.5);
+          let score = (prediction > 0 ? prediction * 2 : 0) - (distance * 0.5);
+          
+          // Penalize locations that would cross break time
+          if (wouldCrossBreakTime) {
+            score *= 0.5;
+          }
           
           mockRecommendations.push({
             id: Date.now() + i,
@@ -102,7 +157,8 @@ export function PickupRecommendation({
             score,
             distance,
             duration,
-            prediction
+            prediction,
+            wouldCrossBreakTime
           });
         }
         
@@ -124,7 +180,7 @@ export function PickupRecommendation({
     };
     
     fetchRecommendations();
-  }, [currentLocation]);
+  }, [currentLocation, isBreakTime, currentTime, breakStartTime, breakEndTime]);
 
   // Helper function to calculate distance between two points (in km)
   const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -160,13 +216,36 @@ export function PickupRecommendation({
     // Generate a prediction score (-2 to 2) for demand
     const prediction = Math.random() * 4 - 2;
     
+    // Check if pickup would cross break time
+    let wouldCrossBreakTime = false;
+    if (currentTime) {
+      const [time, period] = currentTime.split(' ');
+      let hour = parseInt(time.split(':')[0]);
+      let minute = parseInt(time.split(':')[1]);
+      if (period === 'PM' && hour !== 12) hour += 12;
+      if (period === 'AM' && hour === 12) hour = 0;
+      
+      // Estimate arrival hour
+      const durationMinutes = Math.ceil((location.duration || 300) / 60);
+      const totalMinutes = hour * 60 + minute + durationMinutes;
+      const arrivalHour = Math.floor(totalMinutes / 60);
+      
+      wouldCrossBreakTime = (arrivalHour >= breakStartTime && arrivalHour < breakEndTime);
+    }
+    
     // Calculate a score based on the prediction and distance
-    const score = (prediction > 0 ? prediction * 2 : 0) - (location.distance || 0) * 0.5;
+    let score = (prediction > 0 ? prediction * 2 : 0) - (location.distance || 0) * 0.5;
+    
+    // Penalize locations that would cross break time
+    if (wouldCrossBreakTime) {
+      score *= 0.5;
+    }
     
     return {
       ...location,
       prediction,
-      score
+      score,
+      wouldCrossBreakTime
     };
   };
 
@@ -270,11 +349,32 @@ export function PickupRecommendation({
   // Check if there are any custom locations
   const hasCustomLocations = recommendedPickups.some(loc => loc.isCustom);
 
+  // Render break time notice
+  const renderBreakTimeNotice = () => {
+    if (isBreakTime) {
+      return (
+        <div className={`p-3 rounded-lg ${darkMode ? 'bg-amber-900' : 'bg-amber-100'} border ${darkMode ? 'border-amber-800' : 'border-amber-200'} mb-4`}>
+          <div className="flex items-center">
+            <Coffee className={`h-5 w-5 mr-2 ${darkMode ? 'text-amber-500' : 'text-amber-600'}`} />
+            <span className={`font-medium ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+              Break Time
+            </span>
+          </div>
+          <p className={`text-sm mt-1 ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+            You're currently on break until {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
+            The next trip will be scheduled after your break.
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className={`p-4 ${colors.card} border-b ${colors.border}`}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className={`text-lg font-semibold ${colors.text}`}>AI Recommended Pickups</h2>
+          <h2 className={`text-lg font-semibold ${colors.text}`}>AI Pickup Recommendations</h2>
           <button
             onClick={onCancel}
             className={`p-2 rounded-full hover:${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
@@ -282,6 +382,8 @@ export function PickupRecommendation({
             <X size={20} className={colors.text} />
           </button>
         </div>
+
+        {renderBreakTimeNotice()}
 
         <div className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
           <p className="text-sm">
@@ -333,78 +435,102 @@ export function PickupRecommendation({
               </div>
             ) : (
               <>
-                <div className="space-y-3 mb-4 max-h-56 overflow-y-auto pr-2">
-                  {recommendedPickups.map((location) => (
-                    <div 
-                      key={location.id}
-                      onClick={() => handleLocationSelect(location.id)}
-                      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border relative ${
-                        selectedLocationId === location.id 
-                          ? (darkMode ? 'bg-gray-700 border-purple-500' : 'bg-purple-50 border-purple-400')
-                          : (darkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-gray-200 hover:bg-purple-50')
-                      } ${aiRecommendedId === location.id && !location.isCustom ? 'border-2' : 'border'}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className={`w-2 h-2 rounded-full ${location.isCustom ? 'bg-blue-500' : 'bg-orange-500'}`} />
-                            <span className={`font-medium ${colors.text}`}>{location.label}</span>
-                            {aiRecommendedId === location.id && !location.isCustom && (
-                              <span className={`text-xs py-0.5 px-2 rounded-full ${darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'}`}>
-                                Top Pick
-                              </span>
-                            )}
-                            {location.isCustom && (
-                              <span className={`text-xs py-0.5 px-2 rounded-full ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
-                                Custom
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                            <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              <span className="block font-medium">Distance</span>
-                              <span>{location.distance?.toFixed(1)} km</span>
+                {isBreakTime ? (
+                  <div className={`p-4 rounded-lg mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} text-center`}>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      No pickup recommendations available during break time.
+                    </p>
+                    <p className={`text-sm mt-2 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                      Recommendations will be available after {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
+                    </p>
+                  </div>
+                ) : recommendedPickups.length === 0 ? (
+                  <div className={`p-4 rounded-lg mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} text-center`}>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      No pickup recommendations available at this time.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 mb-4 max-h-56 overflow-y-auto pr-2">
+                    {recommendedPickups.map((location) => (
+                      <div 
+                        key={location.id}
+                        onClick={() => handleLocationSelect(location.id)}
+                        className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border relative ${
+                          selectedLocationId === location.id 
+                            ? (darkMode ? 'bg-gray-700 border-purple-500' : 'bg-purple-50 border-purple-400')
+                            : (darkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-gray-200 hover:bg-purple-50')
+                        } ${aiRecommendedId === location.id && !location.isCustom ? 'border-2' : 'border'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className={`w-2 h-2 rounded-full ${location.isCustom ? 'bg-blue-500' : 'bg-orange-500'}`} />
+                              <span className={`font-medium ${colors.text}`}>{location.label}</span>
+                              {aiRecommendedId === location.id && !location.isCustom && (
+                                <span className={`text-xs py-0.5 px-2 rounded-full ${darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'}`}>
+                                  Top Pick
+                                </span>
+                              )}
+                              {location.isCustom && (
+                                <span className={`text-xs py-0.5 px-2 rounded-full ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
+                                  Custom
+                                </span>
+                              )}
+                              {location.wouldCrossBreakTime && (
+                                <span className={`text-xs py-0.5 px-2 rounded-full ${darkMode ? 'bg-amber-900 text-amber-200' : 'bg-amber-100 text-amber-800'}`}>
+                                  Crosses Break
+                                </span>
+                              )}
                             </div>
-                            <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              <span className="block font-medium">Est. Travel Time</span>
-                              <span>{formatDuration(location.duration || 0)}</span>
-                            </div>
-                            <div className={`col-span-2 mt-1 ${getPredictionColor(location.prediction)}`}>
-                              <span className="flex items-center">
-                                <TrendingUp size={14} className="mr-1" />
-                                <span className="font-medium">{getPredictionLabel(location.prediction)}</span>
-                              </span>
+                            
+                            <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                              <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <span className="block font-medium">Distance</span>
+                                <span>{location.distance?.toFixed(1)} km</span>
+                              </div>
+                              <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                <span className="block font-medium">Est. Travel Time</span>
+                                <span>{formatDuration(location.duration || 0)}</span>
+                              </div>
+                              <div className={`col-span-2 mt-1 ${getPredictionColor(location.prediction)}`}>
+                                <span className="flex items-center">
+                                  <TrendingUp size={14} className="mr-1" />
+                                  <span className="font-medium">{getPredictionLabel(location.prediction)}</span>
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
                 
-                <div className="flex gap-2 mb-3">
-                  <button
-                    onClick={() => setIsCustomMode(true)}
-                    className={`flex-1 py-2 rounded-full flex items-center justify-center ${
-                      darkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-500 text-white hover:bg-blue-400'
-                    } transition-colors duration-200`}
-                  >
-                    <PlusCircle size={18} className="mr-2" />
-                    Choose Custom Pickup
-                  </button>
-                  
-                  {hasCustomLocations && (
+                {!isBreakTime && (
+                  <div className="flex gap-2 mb-3">
                     <button
-                      onClick={handleReanalyzeCustomPickups}
-                      className={`py-2 px-3 rounded-full flex items-center justify-center ${
-                        darkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-500 text-white hover:bg-indigo-400'
+                      onClick={() => setIsCustomMode(true)}
+                      className={`flex-1 py-2 rounded-full flex items-center justify-center ${
+                        darkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-500 text-white hover:bg-blue-400'
                       } transition-colors duration-200`}
                     >
-                      <RefreshCw size={18} />
+                      <PlusCircle size={18} className="mr-2" />
+                      Choose Custom Pickup
                     </button>
-                  )}
-                </div>
+                    
+                    {hasCustomLocations && (
+                      <button
+                        onClick={handleReanalyzeCustomPickups}
+                        className={`py-2 px-3 rounded-full flex items-center justify-center ${
+                          darkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-500 text-white hover:bg-indigo-400'
+                        } transition-colors duration-200`}
+                      >
+                        <RefreshCw size={18} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </>
@@ -419,9 +545,9 @@ export function PickupRecommendation({
           </button>
           <button
             onClick={handleConfirmSelection}
-            disabled={selectedLocationId === null || isLoading || isAnalyzing || isCustomMode}
+            disabled={selectedLocationId === null || isLoading || isAnalyzing || isCustomMode || isBreakTime}
             className={`flex-1 py-2 rounded-full flex items-center justify-center ${
-              selectedLocationId === null || isLoading || isAnalyzing || isCustomMode
+              selectedLocationId === null || isLoading || isAnalyzing || isCustomMode || isBreakTime
                 ? (darkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400')
                 : (darkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-500 text-white hover:bg-purple-400')
             } transition-colors duration-200`}

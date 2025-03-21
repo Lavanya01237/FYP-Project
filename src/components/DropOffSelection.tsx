@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Map } from './Map';
-import { MapPin, ThumbsUp, X } from 'lucide-react';
+import { MapPin, ThumbsUp, X, Coffee } from 'lucide-react';
 
 interface DropOffLocation {
   id: number;
@@ -26,10 +26,22 @@ interface DropOffSelectionProps {
     secondaryBg: string;
     border: string;
   };
+  currentTime?: string;
+  breakStartTime?: number;
+  breakEndTime?: number;
 }
 
 export function DropOffSelection(props: DropOffSelectionProps) {
-  const { darkMode = false, currentLocation, onDropOffSelected, onCancel, themeColors } = props;
+  const { 
+    darkMode = false, 
+    currentLocation, 
+    onDropOffSelected, 
+    onCancel, 
+    themeColors,
+    currentTime,
+    breakStartTime = 12,
+    breakEndTime = 13
+  } = props;
   
   const [dropOffLocations, setDropOffLocations] = useState<DropOffLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
@@ -46,6 +58,21 @@ export function DropOffSelection(props: DropOffSelectionProps) {
     secondaryBg: darkMode ? 'bg-gray-700' : 'bg-purple-50',
     border: darkMode ? 'border-gray-700' : 'border-purple-100'
   };
+
+  // Helper function to check if a time is during break
+  const isDuringBreak = (hourString: string): boolean => {
+    if (!hourString) return false;
+    
+    const [time, period] = hourString.split(' ');
+    let hour = parseInt(time.split(':')[0]);
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+    
+    return hour >= breakStartTime && hour < breakEndTime;
+  };
+  
+  // Check if we are currently in break time
+  const isInBreakTime = currentTime ? isDuringBreak(currentTime) : false;
 
   const handleLocationSelected = (lat: number, lng: number) => {
     console.log("Location selected:", lat, lng);
@@ -93,7 +120,27 @@ export function DropOffSelection(props: DropOffSelectionProps) {
         const revenue = 4.5 + (distance * 0.70);
         const prediction = Math.random() * 2 - 1;
         const demandScore = prediction < 0 ? -prediction : 0;
-        const score = revenue * (1 + Math.max(0, demandScore));
+        
+        // Check if arrival would be during break time
+        let score = revenue * (1 + Math.max(0, demandScore));
+        
+        if (currentTime) {
+          const [time, period] = currentTime.split(' ');
+          let hour = parseInt(time.split(':')[0]);
+          let minute = parseInt(time.split(':')[1]);
+          if (period === 'PM' && hour !== 12) hour += 12;
+          if (period === 'AM' && hour === 12) hour = 0;
+          
+          // Estimate arrival hour
+          const durationMinutes = Math.ceil(duration / 60);
+          const totalMinutes = hour * 60 + minute + durationMinutes;
+          const arrivalHour = Math.floor(totalMinutes / 60);
+          
+          // Penalize locations that would arrive during break time
+          if (arrivalHour >= breakStartTime && arrivalHour < breakEndTime) {
+            score *= 0.5; // Reduce score for locations that arrive during break
+          }
+        }
         
         return {
           ...location,
@@ -147,6 +194,27 @@ export function DropOffSelection(props: DropOffSelectionProps) {
     return `${minutes} min`;
   };
 
+  // Function to render break time notice
+  const renderBreakTimeNotice = () => {
+    if (isInBreakTime) {
+      return (
+        <div className={`p-3 rounded-lg ${darkMode ? 'bg-amber-900' : 'bg-amber-100'} border ${darkMode ? 'border-amber-800' : 'border-amber-200'} mb-4`}>
+          <div className="flex items-center">
+            <Coffee className={`h-5 w-5 mr-2 ${darkMode ? 'text-amber-500' : 'text-amber-600'}`} />
+            <span className={`font-medium ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+              Break Time
+            </span>
+          </div>
+          <p className={`text-sm mt-1 ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+            You're currently on break until {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
+            The next trip will be scheduled after your break.
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   // JSX rendering
   return (
     <div className="flex flex-col h-full">
@@ -160,6 +228,8 @@ export function DropOffSelection(props: DropOffSelectionProps) {
             <X size={20} className={colors.text} />
           </button>
         </div>
+
+        {renderBreakTimeNotice()}
 
         <div className="flex items-center mb-4">
           <div className="relative flex-1 mr-2">

@@ -5,7 +5,7 @@ import { RouteSummary } from './components/RouteSummary';
 import { DropOffSelection } from './components/DropOffSelection';
 import { PickupRecommendation } from './components/PickupRecommendation';
 import { Route, Location } from './types';
-import { Navigation, MoonIcon, SunIcon, MenuIcon, HistoryIcon, UserIcon, BellIcon, MapPin, ArrowLeftCircle, PlusCircle } from 'lucide-react';
+import { Navigation, MoonIcon, SunIcon, MenuIcon, HistoryIcon, UserIcon, BellIcon, MapPin, ArrowLeftCircle, PlusCircle, Coffee } from 'lucide-react';
 
 // Add these new types to handle the AI flow
 interface DropOffLocation {
@@ -48,6 +48,9 @@ function App() {
   const [endTime, setEndTime] = useState<number>(25); // Default end time (1 AM next day)
   const [previousRoutes, setPreviousRoutes] = useState<Route[]>([]);
   const [canContinuePlanning, setCanContinuePlanning] = useState(false);
+  const [breakStartTime, setBreakStartTime] = useState<number>(12); // Default break start time (12 PM)
+  const [breakEndTime, setBreakEndTime] = useState<number>(13); // Default break end time (1 PM)
+  const [isBreakTime, setIsBreakTime] = useState<boolean>(false);
 
   // Function to get current hour for time calculations
   const getCurrentHour = (timeStr: string): number => {
@@ -58,7 +61,51 @@ function App() {
     return hour;
   };
 
-  const handleRouteSubmit = async (data: { lat: number; lng: number; startTime: number; endTime: number; algorithm: 'reinforcement' | 'greedy' }) => {
+  // Helper function to convert time string to minutes
+  const timeStringToMinutes = (timeString: string): number => {
+    const [time, period] = timeString.split(' ');
+    const [hour, minute] = time.split(':').map(Number);
+    
+    let totalMinutes = (hour % 12) * 60 + minute;
+    if (period === 'PM' && hour !== 12) totalMinutes += 12 * 60;
+    if (period === 'AM' && hour === 12) totalMinutes = minute; // 12 AM is 0 hours
+    
+    return totalMinutes;
+  };
+
+  // Helper function to convert minutes to time string
+  const minutesToTimeString = (totalMinutes: number): string => {
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const minutes = totalMinutes % 60;
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const formattedHour = hours % 12 || 12;
+    
+    return `${formattedHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Helper function to check if a time is during break
+  const isDuringBreak = (timeString: string): boolean => {
+    const minutes = timeStringToMinutes(timeString);
+    const hour = Math.floor(minutes / 60);
+    return hour >= breakStartTime && hour < breakEndTime;
+  };
+
+  // Helper function to get time after break if the given time is during break
+  const getTimeAfterBreak = (timeString: string): string => {
+    if (!isDuringBreak(timeString)) return timeString;
+    
+    return minutesToTimeString(breakEndTime * 60);
+  };
+
+  const handleRouteSubmit = async (data: { 
+    lat: number; 
+    lng: number; 
+    startTime: number; 
+    endTime: number; 
+    algorithm: 'reinforcement' | 'greedy';
+    breakStartTime: number;
+    breakEndTime: number;
+  }) => {
     try {
       setLoading(true);
       setError(null);
@@ -66,6 +113,8 @@ function App() {
       setCurrentLocation({ lat: data.lat, lng: data.lng });
       setInitialStartTime(data.startTime);
       setEndTime(data.endTime);
+      setBreakStartTime(data.breakStartTime);
+      setBreakEndTime(data.breakEndTime);
       
       // If user chooses AI optimization (reinforcement learning)
       if (data.algorithm === 'reinforcement') {
@@ -96,7 +145,9 @@ function App() {
             },
             startTime: data.startTime,
             endTime: data.endTime,
-            algorithm: data.algorithm
+            algorithm: data.algorithm,
+            breakStartTime: data.breakStartTime,
+            breakEndTime: data.breakEndTime
           }),
         });
 
@@ -124,12 +175,26 @@ function App() {
     const lastLocation = customRouteLocations[customRouteLocations.length - 1];
     const currentTripId = nextTripId;
     
+    // Calculate estimated time for the drop-off
+    let estimatedMinutes = timeStringToMinutes(lastLocation.time) + Math.ceil((location.duration || 300) / 60);
+    
+    // Check if drop-off time falls within break time
+    const estimatedHour = Math.floor(estimatedMinutes / 60);
+    
+    if (estimatedHour >= breakStartTime && estimatedHour < breakEndTime) {
+      // Adjust time to after break
+      estimatedMinutes = breakEndTime * 60;
+    }
+    
+    // Create the time string
+    const dropOffTime = minutesToTimeString(estimatedMinutes);
+    
     // Add selected drop-off
     const newDropOff: Location = {
       lat: location.lat,
       lng: location.lng,
       type: 'dropoff',
-      time: addMinutesToTime(lastLocation.time, Math.ceil((location.duration || 300) / 60)), // Convert seconds to minutes
+      time: dropOffTime,
       revenue: location.revenue || 0,
       tripId: currentTripId
     };
@@ -144,12 +209,27 @@ function App() {
 
   const handlePickupSelected = (location: PickupLocation) => {
     // Add the new pickup location to our custom route
+    const lastLocation = customRouteLocations[customRouteLocations.length - 1];
+    
+    // Calculate time to pickup location
+    let estimatedMinutes = timeStringToMinutes(lastLocation.time) + Math.ceil((location.duration || 300) / 60);
+    
+    // Check if time falls within break time
+    const estimatedHour = Math.floor(estimatedMinutes / 60);
+    
+    if (estimatedHour >= breakStartTime && estimatedHour < breakEndTime) {
+      // Skip to end of break
+      estimatedMinutes = breakEndTime * 60;
+    }
+    
+    // Create the time string
+    const pickupTime = minutesToTimeString(estimatedMinutes);
+    
     const newPickup: Location = {
       lat: location.lat,
       lng: location.lng,
       type: 'pickup',
-      time: addMinutesToTime(customRouteLocations[customRouteLocations.length - 1].time, 
-                            Math.ceil((location.duration || 300) / 60)), // Convert seconds to minutes
+      time: pickupTime,
       revenue: 0,
       tripId: nextTripId
     };
@@ -158,7 +238,7 @@ function App() {
     setCurrentLocation({ lat: location.lat, lng: location.lng });
     
     // Check if we've reached the end time
-    const currentHour = getCurrentHour(newPickup.time);
+    const currentHour = getCurrentHour(pickupTime);
     if (currentHour >= endTime) {
       handleFinishRoute();
     } else {
@@ -183,7 +263,7 @@ function App() {
       locations: [...customRouteLocations],
       totalRevenue,
       totalDrivingTime,
-      breakTime: '12:00 PM - 1:00 PM'
+      breakTime: `${formatTime(breakStartTime, 0)} - ${formatTime(breakEndTime, 0)}`
     };
     
     // Save the current route to previous routes
@@ -231,6 +311,8 @@ function App() {
     // Reset time settings to defaults
     setInitialStartTime(6); // Default start time (6 AM)
     setEndTime(25); // Default end time (1 AM next day)
+    setBreakStartTime(12); // Reset break time
+    setBreakEndTime(13);
   };
 
   const toggleDarkMode = () => {
@@ -258,6 +340,8 @@ function App() {
     // Reset time settings to defaults
     setInitialStartTime(6);
     setEndTime(25);
+    setBreakStartTime(12);
+    setBreakEndTime(13);
   };
 
   // Helper function to format time
@@ -277,6 +361,13 @@ function App() {
     
     totalMinutes += minutesToAdd;
     
+    // Check if the resulting time is during break hours
+    const resultHour = Math.floor(totalMinutes / 60);
+    if (resultHour >= breakStartTime && resultHour < breakEndTime) {
+      // Skip to end of break
+      totalMinutes = breakEndTime * 60;
+    }
+    
     const newHour = Math.floor(totalMinutes / 60) % 24;
     const newMinute = totalMinutes % 60;
     const newPeriod = newHour >= 12 ? 'PM' : 'AM';
@@ -285,16 +376,28 @@ function App() {
     return `${formattedHour}:${newMinute.toString().padStart(2, '0')} ${newPeriod}`;
   };
 
-  // Helper function to convert time string to minutes
-  const timeStringToMinutes = (timeString: string): number => {
-    const [time, period] = timeString.split(' ');
-    const [hour, minute] = time.split(':').map(Number);
+  // Create a helper function to get formatted break time string
+  const getFormattedBreakTime = (): string => {
+    const formatHour = (hour: number) => {
+      if (hour === 0 || hour === 24) return '12:00 AM';
+      if (hour === 12) return '12:00 PM';
+      if (hour > 12) return `${hour - 12}:00 PM`;
+      return `${hour}:00 AM`;
+    };
     
-    let totalMinutes = (hour % 12) * 60 + minute;
-    if (period === 'PM' && hour !== 12) totalMinutes += 12 * 60;
-    
-    return totalMinutes;
+    return `${formatHour(breakStartTime)} - ${formatHour(breakEndTime)}`;
   };
+
+  // Add effect to check if current time is during break
+  useEffect(() => {
+    if (customRouteLocations.length > 0) {
+      const lastLocation = customRouteLocations[customRouteLocations.length - 1];
+      const currentHour = getCurrentHour(lastLocation.time);
+      
+      // Set flag for whether we're in break time
+      setIsBreakTime(currentHour >= breakStartTime && currentHour < breakEndTime);
+    }
+  }, [customRouteLocations, breakStartTime, breakEndTime]);
 
   // Define theme colors based on mode
   const themeColors = darkMode 
@@ -463,7 +566,12 @@ function App() {
         {appMode === 'route' && route && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
-              <RouteSummary route={route} darkMode={darkMode} algorithm={selectedAlgorithm} themeColors={themeColors} />
+              <RouteSummary 
+                route={{...route, breakTime: getFormattedBreakTime()}} 
+                darkMode={darkMode} 
+                algorithm={selectedAlgorithm} 
+                themeColors={themeColors} 
+              />
               
               {/* Route Management Controls */}
               <div className={`${themeColors.card} p-4 rounded-xl shadow-lg transition-colors duration-300`}>
@@ -539,6 +647,31 @@ function App() {
                   <MapPin className="mr-2 h-5 w-5" />
                   AI Route Planning
                 </h2>
+                
+                {/* Add break time indicator if in break time */}
+                {customRouteLocations.length > 0 && (() => {
+                  const lastLocation = customRouteLocations[customRouteLocations.length - 1];
+                  const currentHour = getCurrentHour(lastLocation.time);
+                  
+                  if (currentHour >= breakStartTime && currentHour < breakEndTime) {
+                    return (
+                      <div className={`rounded-lg p-4 ${darkMode ? 'bg-amber-900' : 'bg-amber-100'} border ${darkMode ? 'border-amber-800' : 'border-amber-200'}`}>
+                        <div className="flex items-center">
+                          <Coffee className={`h-5 w-5 mr-2 ${darkMode ? 'text-amber-500' : 'text-amber-600'}`} />
+                          <span className={`font-medium ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                            Break Time
+                          </span>
+                        </div>
+                        <p className={`text-sm mt-1 ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+                          Currently on break until {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
+                          The next trip will be scheduled after your break.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                
                 <div className={`rounded-lg p-4 ${themeColors.secondaryBg} ${themeColors.border} border`}>
                   <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Select potential drop-off locations on the map. Our AI will analyze and recommend the most profitable options.
@@ -563,6 +696,9 @@ function App() {
                   onDropOffSelected={handleDropOffSelected}
                   onCancel={resetApp}
                   themeColors={themeColors}
+                  currentTime={customRouteLocations.length > 0 ? customRouteLocations[customRouteLocations.length - 1].time : undefined}
+                  breakStartTime={breakStartTime}
+                  breakEndTime={breakEndTime}
                 />
               </div>
             </div>
@@ -577,6 +713,31 @@ function App() {
                   <Navigation className="mr-2 h-5 w-5" />
                   AI Pickup Recommendations
                 </h2>
+                
+                {/* Add break time indicator if in break time */}
+                {customRouteLocations.length > 0 && (() => {
+                  const lastLocation = customRouteLocations[customRouteLocations.length - 1];
+                  const currentHour = getCurrentHour(lastLocation.time);
+                  
+                  if (currentHour >= breakStartTime && currentHour < breakEndTime) {
+                    return (
+                      <div className={`rounded-lg p-4 ${darkMode ? 'bg-amber-900' : 'bg-amber-100'} border ${darkMode ? 'border-amber-800' : 'border-amber-200'}`}>
+                        <div className="flex items-center">
+                          <Coffee className={`h-5 w-5 mr-2 ${darkMode ? 'text-amber-500' : 'text-amber-600'}`} />
+                          <span className={`font-medium ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                            Break Time
+                          </span>
+                        </div>
+                        <p className={`text-sm mt-1 ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+                          Currently on break until {breakEndTime === 12 ? '12:00 PM' : breakEndTime > 12 ? `${breakEndTime-12}:00 PM` : `${breakEndTime}:00 AM`}.
+                          The next trip will be scheduled after your break.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                
                 <div className={`rounded-lg p-4 ${themeColors.secondaryBg} ${themeColors.border} border`}>
                   <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Based on your drop-off location, our AI is suggesting optimal pickup points that maximize your chances of finding passengers.

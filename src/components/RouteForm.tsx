@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Locate, Calendar, Settings } from 'lucide-react';
+import { Clock, MapPin, Locate, Calendar, Settings, Coffee } from 'lucide-react';
 
 interface RouteFormProps {
-  onSubmit: (data: { lat: number; lng: number; startTime: number; endTime: number; algorithm: 'reinforcement' | 'greedy' }) => void;
+  onSubmit: (data: { 
+    lat: number; 
+    lng: number; 
+    startTime: number; 
+    endTime: number; 
+    algorithm: 'reinforcement' | 'greedy';
+    breakStartTime: number;
+    breakEndTime: number;
+  }) => void;
   isLoading?: boolean;
   darkMode?: boolean;
   themeColors?: {
@@ -23,10 +31,27 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
   const [algorithm, setAlgorithm] = useState<'reinforcement' | 'greedy'>('reinforcement');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [expanded, setExpanded] = useState<boolean>(true);
+  const [breakTimeExpanded, setBreakTimeExpanded] = useState<boolean>(false);
+  const [breakStartTime, setBreakStartTime] = useState<number>(12); // Default break start time 12 PM
+  const [breakEndTime, setBreakEndTime] = useState<number>(13); // Default break end time 1 PM
+  const [customBreak, setCustomBreak] = useState<boolean>(false);
+
+  // Effect to ensure break time is within shift hours
+  useEffect(() => {
+    if (breakStartTime < startTime) {
+      setBreakStartTime(startTime);
+    }
+    if (breakEndTime > endTime) {
+      setBreakEndTime(endTime);
+    }
+    if (breakStartTime >= breakEndTime) {
+      setBreakEndTime(breakStartTime + 1);
+    }
+  }, [startTime, endTime, breakStartTime, breakEndTime]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ lat, lng, startTime, endTime, algorithm });
+    onSubmit({ lat, lng, startTime, endTime, algorithm, breakStartTime, breakEndTime });
   };
 
   const getCurrentLocation = () => {
@@ -52,6 +77,14 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
     );
   };
 
+  // Default break times
+  const defaultBreakOptions = [
+    { label: 'Lunch (12 PM - 1 PM)', startTime: 12, endTime: 13 },
+    { label: 'Early Lunch (11 AM - 12 PM)', startTime: 11, endTime: 12 },
+    { label: 'Late Lunch (1 PM - 2 PM)', startTime: 13, endTime: 14 },
+    { label: 'Dinner (6 PM - 7 PM)', startTime: 18, endTime: 19 }
+  ];
+
   // Popular Singapore locations
   const popularLocations = [
     { name: 'Downtown Core', lat: 1.2789, lng: 103.8536 },
@@ -68,6 +101,16 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
     highlight: darkMode ? 'text-purple-400' : 'text-purple-600',
     secondaryBg: darkMode ? 'bg-gray-700' : 'bg-purple-100',
     border: darkMode ? 'border-gray-700' : 'border-purple-100'
+  };
+
+  // Helper function to format time
+  const formatTimeDisplay = (hour: number): string => {
+    if (hour === 12) return '12 PM';
+    if (hour === 24) return '12 AM (next day)';
+    if (hour === 0) return '12 AM';
+    if (hour > 24) return `${hour - 24} AM (next day)`;
+    if (hour > 12) return `${hour - 12} PM`;
+    return `${hour} AM`;
   };
 
   return (
@@ -269,6 +312,141 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Break Time Section */}
+            <div className={`rounded-lg p-4 ${colors.secondaryBg} ${colors.border} border`}>
+              <div 
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => setBreakTimeExpanded(!breakTimeExpanded)}
+              >
+                <div className="flex items-center">
+                  <Coffee className={`h-5 w-5 mr-2 ${colors.highlight}`} />
+                  <span className={`font-medium ${colors.text}`}>Break Time</span>
+                </div>
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className={`transform ${breakTimeExpanded ? 'rotate-180' : ''} ${colors.text}`}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              
+              {breakTimeExpanded && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {defaultBreakOptions.map((option, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          if (option.startTime >= startTime && option.endTime <= endTime) {
+                            setBreakStartTime(option.startTime);
+                            setBreakEndTime(option.endTime);
+                            setCustomBreak(false);
+                          } else {
+                            alert('Break time must be within your shift hours.');
+                          }
+                        }}
+                        className={`text-xs py-1.5 px-3 rounded-full ${
+                          !customBreak && breakStartTime === option.startTime && breakEndTime === option.endTime
+                            ? (darkMode ? 'bg-purple-700 text-white' : 'bg-purple-500 text-white')
+                            : (darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200')
+                        } transition-colors duration-200`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setCustomBreak(true)}
+                      className={`text-xs py-1.5 px-3 rounded-full ${
+                        customBreak
+                          ? (darkMode ? 'bg-purple-700 text-white' : 'bg-purple-500 text-white')
+                          : (darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-purple-100 text-purple-700 hover:bg-purple-200')
+                      } transition-colors duration-200`}
+                    >
+                      Custom Break
+                    </button>
+                  </div>
+                  
+                  {(customBreak || (!defaultBreakOptions.some(opt => opt.startTime === breakStartTime && opt.endTime === breakEndTime))) && (
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div>
+                        <label className={`block text-xs mb-1 ${colors.text}`}>
+                          Break Start
+                        </label>
+                        <select
+                          value={breakStartTime}
+                          onChange={(e) => {
+                            const newStartTime = parseInt(e.target.value, 10);
+                            setBreakStartTime(newStartTime);
+                            if (newStartTime >= breakEndTime) {
+                              setBreakEndTime(newStartTime + 1 > endTime ? endTime : newStartTime + 1);
+                            }
+                            setCustomBreak(true);
+                          }}
+                          className={`w-full rounded-lg h-10 border ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-white border-purple-200 text-gray-900'
+                          } px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm`}
+                        >
+                          {Array.from({ length: endTime - startTime }, (_, i) => i + startTime).map((hour) => (
+                            <option key={hour} value={hour}>
+                              {formatTimeDisplay(hour)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-xs mb-1 ${colors.text}`}>
+                          Break End
+                        </label>
+                        <select
+                          value={breakEndTime}
+                          onChange={(e) => {
+                            setBreakEndTime(parseInt(e.target.value, 10));
+                            setCustomBreak(true);
+                          }}
+                          className={`w-full rounded-lg h-10 border ${
+                            darkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white' 
+                              : 'bg-white border-purple-200 text-gray-900'
+                          } px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm`}
+                        >
+                          {Array.from({ length: endTime - breakStartTime }, (_, i) => i + breakStartTime + 1).map((hour) => (
+                            <option key={hour} value={hour}>
+                              {formatTimeDisplay(hour)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className={`text-xs p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} ${colors.text}`}>
+                    Current break time: <strong>{formatTimeDisplay(breakStartTime)} - {formatTimeDisplay(breakEndTime)}</strong>
+                    <p className={`mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      No routes will be scheduled during this period.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {!breakTimeExpanded && (
+                <div className={`mt-2 text-xs ${colors.text}`}>
+                  Current break: {formatTimeDisplay(breakStartTime)} - {formatTimeDisplay(breakEndTime)}
+                </div>
+              )}
             </div>
 
             <div>
