@@ -114,12 +114,12 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
   };
 
   return (
-    <div className={`rounded-xl overflow-hidden shadow-lg transition-all duration-300 ${colors.card} ${colors.border} border`}>
+    <div className={`rounded-l overflow-hidden transition-all duration-300 ${colors.card} ${colors.border} border shadow-xl`}>
       <div 
-        className={`px-6 py-5 flex justify-between items-center ${expanded ? 'border-b' : ''} ${colors.border} cursor-pointer`}
+        className={`px-6 py-5 flex justify-between items-center ${expanded ? 'border-b' : ''} ${colors.border} cursor-pointer bg-[#F5F0FF]`}
         onClick={() => setExpanded(!expanded)}
       >
-        <h2 className={`text-xl font-bold ${colors.text} flex items-center`}>
+        <h2 className={`font-sans text-2xl font-bold ${colors.text} flex items-center`}>
           <MapPin className={`mr-3 h-6 w-6 ${colors.highlight}`} />
           Plan Your Route
         </h2>
@@ -145,7 +145,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
         <form onSubmit={handleSubmit} className="px-7 py-6 space-y-7">
           <div className="space-y-5">
             <div>
-              <label className={`block text-base font-bold mb-2 ${colors.text}`}>
+              <label className={`block font-sans text-base font-bold mb-2 ${colors.text}`}>
                 Starting Location
               </label>
               <div className="relative">
@@ -189,7 +189,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
             </div>
 
             <div>
-              <label className={`block text-base font-bold mb-2 ${colors.text}`}>
+              <label className={`block font-sans text-base font-bold  mb-2 ${colors.text}`}>
                 Popular Locations
               </label>
               <div className="flex flex-wrap gap-2.5">
@@ -215,7 +215,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
 
             <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className={`block text-base font-bold mb-2 ${colors.text}`}>
+                <label className={`block font-sans text-base font-bold  mb-2 ${colors.text}`}>
                   Start Time
                 </label>
                 <div className="relative">
@@ -264,7 +264,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
               </div>
               
               <div>
-                <label className={`block text-base font-bold mb-2 ${colors.text}`}>
+                <label className={`block font-sans text-base font-bold  mb-2 ${colors.text}`}>
                   End Time
                 </label>
                 <div className="relative">
@@ -322,7 +322,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
               >
                 <div className="flex items-center">
                   <Coffee className={`h-5 w-5 mr-3 ${colors.highlight}`} />
-                  <span className={`font-bold text-base ${colors.text}`}>Break Time</span>
+                  <span className={`font-sans text-base font-bold  ${colors.text}`}>Break Time</span>
                 </div>
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -450,7 +450,7 @@ export function RouteForm({ onSubmit, isLoading, darkMode = false, themeColors }
             </div>
 
             <div className="mt-1">
-              <label className={`block text-base font-bold mb-2.5 ${colors.text}`}>
+              <label className={`block font-sans text-base font-bold  mb-2.5 ${colors.text}`}>
                 Optimization Algorithm
               </label>
               <div className="grid grid-cols-2 gap-4">

@@ -135,7 +135,7 @@ export function RouteSummary({ route, darkMode = false, algorithm = 'reinforceme
 
       {expanded && (
         <div className="px-6 py-4 space-y-6">
-          <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#f5f0ff] text-[#9747ff]">
+          <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#f5f0ff] text-[#9747ff] shadow-lg">
             AI Optimized Route
           </div>
           

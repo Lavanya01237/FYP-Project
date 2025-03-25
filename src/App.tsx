@@ -419,7 +419,7 @@ function App() {
 
   // Define theme colors based on mode - Updated to exactly match screenshots
   const themeColors = { 
-    bg: 'bg-[#f9f0ff]', // Light purple background
+    bg: 'bg-[#fdfaff]', // Light purple background
     card: 'bg-white',
     text: 'text-gray-800',
     highlight: 'text-purple-600',
@@ -441,7 +441,7 @@ function App() {
   }, [route, endTime]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${themeColors.bg}`}>
+    <div className={`min-h-screen transition-colors duration-300 bg-purple-0 ${themeColors.bg}`}>
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -449,7 +449,7 @@ function App() {
             className="absolute inset-0 bg-black bg-opacity-50"
             onClick={toggleMenu}
           ></div>
-          <div className="absolute left-0 top-0 h-full w-64 bg-white border-r border-gray-200 transition-transform duration-300 transform">
+          <div className="absolute left-0 top-0 h-full w-64 bg-white border-r border-gray-200 transition-transform duration-300 transform shadow-lg">
             <div className="p-5">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
@@ -491,7 +491,7 @@ function App() {
         </div>
       )}
 
-<header className="bg-white border-b border-gray-200 transition-colors duration-300">
+<header className="bg-white border-b border-gray-200 transition-colors duration-300 shadow-lg">
   <div className="max-w-7xl mx-auto px-7 py-5 sm:px-6 lg:px-8">
     <div className="flex items-center justify-between">
       
